@@ -17,13 +17,14 @@ export interface Note {
   content: string;
   updatedAt: string;
   color?: string;
+  tag?: string;
 }
 
 export interface Task {
   id: string;
   title: string;
   due?: string;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed' | 'needsAction';
 }
 
 export interface Contact {
@@ -48,6 +49,7 @@ export interface CalendarEvent {
   end: string;
   description?: string;
   location?: string;
+  note?: string;
 }
 
 export interface DriveFile {
@@ -58,10 +60,4 @@ export interface DriveFile {
   webViewLink?: string;
 }
 
-export interface RouteOption {
-  type: 'danfo' | 'brt' | 'korope' | 'maruwa' | 'keke' | 'okada' | 'uber' | 'driving' | 'walking';
-  name: string;
-  duration: string;
-  cost?: string;
-  description: string;
-}
+export type ChatMode = 'general' | 'low-latency' | 'thinking' | 'search' | 'maps';

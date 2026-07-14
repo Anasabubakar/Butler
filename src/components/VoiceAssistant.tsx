@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Mic, MicOff, Volume2, Sparkles, RefreshCw, AlertCircle, Play, Square } from "lucide-react";
 
-export default function VoiceAssistant() {
+interface VoiceAssistantProps {
+  onClose?: () => void;
+}
+
+export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
   const [isActive, setIsActive] = useState(false);
-  const [statusText, setStatusText] = useState("Tap to initiate secure voice pipeline with Butler...");
-  const [visualizerHeight, setVisualizerHeight] = useState<number[]>(new Array(16).fill(4));
+  const [statusText, setStatusText] = useState("Tap the orb to open the line.");
+  const [transcript, setTranscript] = useState("");
+  const [visualizerHeight, setVisualizerHeight] = useState<number[]>(new Array(24).fill(4));
 
   const wsRef = useRef<WebSocket | null>(null);
   const inputAudioCtxRef = useRef<AudioContext | null>(null);
@@ -13,36 +17,31 @@ export default function VoiceAssistant() {
   const nextStartTimeRef = useRef<number>(0);
   const animFrameRef = useRef<number | null>(null);
 
-  // Toggle voice line connection
   const toggleConnection = async () => {
     if (isActive) {
       cleanup();
       setIsActive(false);
-      setStatusText("Voice connection terminated, Boss.");
+      setStatusText("Voice connection closed, Boss.");
     } else {
       try {
-        setStatusText("Opening communication tunnel...");
+        setStatusText("Opening the line…");
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${protocol}//${window.location.host}/ws/live`;
-        
+
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = async () => {
-          setStatusText("Establishing audio contexts...");
-          
-          // Output audio context (24kHz for model output)
+          setStatusText("Establishing audio…");
+
           outputAudioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
           nextStartTimeRef.current = outputAudioCtxRef.current.currentTime;
 
-          // Input audio context (16kHz for mic)
           inputAudioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
 
-          // Stream mic
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           const source = inputAudioCtxRef.current.createMediaStreamSource(stream);
-          
-          // ScriptProcessor for raw PCM capture
+
           const processor = inputAudioCtxRef.current.createScriptProcessor(4096, 1, 1);
           micProcessorRef.current = processor;
           source.connect(processor);
@@ -50,30 +49,26 @@ export default function VoiceAssistant() {
 
           processor.onaudioprocess = (e) => {
             const float32Data = e.inputBuffer.getChannelData(0);
-            
-            // Convert to 16-bit Int PCM little endian
             const buffer = new ArrayBuffer(float32Data.length * 2);
             const view = new DataView(buffer);
             for (let i = 0; i < float32Data.length; i++) {
               let s = Math.max(-1, Math.min(1, float32Data[i]));
               view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
             }
-
-            // Convert to base64
             let binary = "";
             const bytes = new Uint8Array(buffer);
             for (let i = 0; i < bytes.byteLength; i++) {
               binary += String.fromCharCode(bytes[i]);
             }
             const base64 = window.btoa(binary);
-
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({ audio: base64 }));
             }
           };
 
           setIsActive(true);
-          setStatusText("Secure line active. Speak naturally, Boss...");
+          setStatusText("Speak naturally, Boss. I'm listening.");
+          setTranscript("");
           animateVisualizer();
         };
 
@@ -83,44 +78,41 @@ export default function VoiceAssistant() {
             if (msg.audio) {
               playAudioChunk(msg.audio);
             }
+            if (msg.transcript) {
+              setTranscript(msg.transcript);
+            }
             if (msg.interrupted) {
-              // User spoke over Butler. Clear playback schedule
               nextStartTimeRef.current = outputAudioCtxRef.current?.currentTime || 0;
             }
             if (msg.error) {
-              setStatusText(`Line error: ${msg.error}`);
+              setStatusText(`Error: ${msg.error}`);
               cleanup();
             }
           } catch (err) {
-            console.error("Audio block read error:", err);
+            console.error("Voice message parse error:", err);
           }
         };
 
-        ws.onerror = (err) => {
-          console.error("WS error:", err);
-          setStatusText("Failed to bridge voice connection.");
+        ws.onerror = () => {
+          setStatusText("Failed to connect to voice line.");
           cleanup();
         };
 
         ws.onclose = () => {
-          setStatusText("Voice connection closed.");
+          setStatusText("Voice line closed.");
           cleanup();
         };
-
-      } catch (err: any) {
-        console.error("Mic/WS pipeline error:", err);
-        setStatusText("Mic permissions or WS pipeline blocked.");
+      } catch {
+        setStatusText("Mic permission required, Boss.");
         cleanup();
       }
     }
   };
 
-  // Playback raw model audio
   const playAudioChunk = (base64Audio: string) => {
     const audioCtx = outputAudioCtxRef.current;
     if (!audioCtx) return;
 
-    // Base64 to ArrayBuffer
     const binary = window.atob(base64Audio);
     const len = binary.length;
     const bytes = new Uint8Array(len);
@@ -128,7 +120,6 @@ export default function VoiceAssistant() {
       bytes[i] = binary.charCodeAt(i);
     }
 
-    // Convert Int16 little-endian PCM bytes back to Float32 for playback
     const view = new DataView(bytes.buffer);
     const pcmLen = bytes.buffer.byteLength / 2;
     const float32Data = new Float32Array(pcmLen);
@@ -137,7 +128,6 @@ export default function VoiceAssistant() {
       float32Data[i] = int16 / 32768;
     }
 
-    // Schedule into AudioContext
     const audioBuffer = audioCtx.createBuffer(1, float32Data.length, 24000);
     audioBuffer.getChannelData(0).set(float32Data);
 
@@ -148,14 +138,13 @@ export default function VoiceAssistant() {
     let startTime = nextStartTimeRef.current;
     const now = audioCtx.currentTime;
     if (startTime < now) {
-      startTime = now + 0.04; // small offset buffer to prevent clicking
+      startTime = now + 0.04;
     }
 
     source.start(startTime);
     nextStartTimeRef.current = startTime + audioBuffer.duration;
   };
 
-  // Clean contexts and ws
   const cleanup = () => {
     if (wsRef.current) {
       wsRef.current.close();
@@ -178,87 +167,128 @@ export default function VoiceAssistant() {
       animFrameRef.current = null;
     }
     setIsActive(false);
-    setVisualizerHeight(new Array(16).fill(4));
+    setVisualizerHeight(new Array(24).fill(4));
   };
 
-  // Idle animation for voice visualizer
   const animateVisualizer = () => {
     if (!wsRef.current) return;
-    setVisualizerHeight(prev => prev.map(() => Math.floor(Math.random() * 40) + 4));
+    setVisualizerHeight((prev) => prev.map(() => Math.floor(Math.random() * 48) + 4));
     animFrameRef.current = requestAnimationFrame(animateVisualizer);
   };
 
   useEffect(() => {
-    return () => {
-      cleanup();
-    };
+    return () => { cleanup(); };
   }, []);
 
   return (
-    <div id="voice-assistant" className="p-8 max-w-2xl mx-auto space-y-8 bg-elegant-bg min-h-screen text-elegant-text flex flex-col justify-center items-center font-sans">
-      
-      {/* Visual Header */}
-      <div className="text-center space-y-3">
-        <div className="mx-auto w-16 h-16 bg-gradient-to-tr from-elegant-gold/20 to-elegant-gold/5 border border-elegant-gold/30 rounded-full flex items-center justify-center shadow-[0_0_25px_rgba(212,175,55,0.15)] animate-pulse">
-          <Volume2 className="w-6 h-6 text-elegant-gold" />
+    <div
+      className="w-full h-full flex flex-col items-center justify-center relative"
+      style={{ background: "var(--color-b-ink)" }}
+    >
+      {/* Close button */}
+      {onClose && (
+        <button
+          onClick={() => { cleanup(); onClose(); }}
+          className="absolute top-8 right-10 mono-label"
+          style={{ color: "var(--color-b-text-tertiary)" }}
+        >
+          Close  ×
+        </button>
+      )}
+
+      {/* Top label */}
+      <div className="absolute top-8 left-10">
+        <div className="mono-label" style={{ color: "var(--color-b-accent-text)" }}>Voice Room</div>
+        <div className="mono-sm mt-1" style={{ color: "var(--color-b-text-tertiary)" }}>
+          Gemini Live · low-latency duplex
         </div>
-        <h2 className="text-2xl font-light text-white tracking-wide italic">Butler Live Voice Line</h2>
-        <p className="text-[10px] font-mono text-elegant-muted uppercase tracking-widest">Low-latency Gemini Live audio-stream bridge</p>
       </div>
 
-      {/* Voice Visualizer */}
-      <div className="flex justify-center items-center gap-1.5 bg-elegant-card border border-elegant-border rounded-xl p-8 w-full max-w-sm h-36 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+      {/* Radial orb */}
+      <button
+        onClick={toggleConnection}
+        className="relative w-[200px] h-[200px] rounded-full flex items-center justify-center transition-all"
+        style={{
+          background: isActive
+            ? "radial-gradient(circle, var(--color-b-accent) 0%, rgba(184,84,49,0.2) 60%, transparent 80%)"
+            : "radial-gradient(circle, rgba(184,84,49,0.3) 0%, rgba(184,84,49,0.05) 60%, transparent 80%)",
+          boxShadow: isActive
+            ? "0 0 80px rgba(184,84,49,0.3), 0 0 160px rgba(184,84,49,0.1)"
+            : "0 0 40px rgba(184,84,49,0.1)",
+        }}
+      >
+        <div
+          className="w-[100px] h-[100px] rounded-full flex items-center justify-center"
+          style={{
+            background: isActive ? "var(--color-b-accent)" : "rgba(184,84,49,0.4)",
+            boxShadow: isActive ? "0 0 40px rgba(184,84,49,0.5)" : "none",
+          }}
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-b-text-inverse)" }}>
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="22" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Waveform visualizer */}
+      <div className="flex items-center justify-center gap-[3px] mt-10 h-[60px]">
         {visualizerHeight.map((h, i) => (
-          <div 
-            key={i} 
-            style={{ height: `${isActive ? h : 4}px` }} 
-            className="w-1.5 bg-gradient-to-t from-elegant-gold to-elegant-gold/40 rounded-full transition-all duration-75"
-          ></div>
+          <div
+            key={i}
+            className="w-[3px] rounded-full transition-all duration-75"
+            style={{
+              height: `${isActive ? h : 4}px`,
+              background: isActive ? "var(--color-b-accent)" : "var(--color-b-text-tertiary)",
+              opacity: isActive ? 0.8 : 0.3,
+            }}
+          />
         ))}
       </div>
 
-      {/* Connection Console */}
-      <div className="text-center space-y-5 max-w-sm w-full">
-        <p className="text-xs font-sans text-elegant-text min-h-[40px] leading-relaxed">
+      {/* Status */}
+      <div className="mt-8 text-center">
+        <div className="body-md" style={{ color: "var(--color-b-text-inverse)" }}>
           {statusText}
-        </p>
-
-        {/* Action Button */}
-        {isActive ? (
-          <button
-            onClick={toggleConnection}
-            className="flex items-center gap-2.5 mx-auto px-6 py-3 border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/15 rounded-lg text-xs font-mono uppercase tracking-widest transition-all cursor-pointer"
-          >
-            <Square className="w-3.5 h-3.5 text-red-400 fill-red-400" />
-            Disconnect Line
-          </button>
-        ) : (
-          <button
-            onClick={toggleConnection}
-            className="flex items-center gap-2.5 mx-auto px-6 py-3 border border-elegant-gold/30 text-elegant-gold bg-elegant-gold/5 hover:bg-elegant-gold/15 hover:text-white font-mono text-[10px] uppercase tracking-widest rounded-lg transition-all cursor-pointer"
-          >
-            <Mic className="w-3.5 h-3.5" />
-            Connect Live Voice
-          </button>
-        )}
-      </div>
-
-      {/* Notes / Instructions */}
-      <div className="bg-elegant-card border border-elegant-border rounded-xl p-5 max-w-sm text-[11px] text-elegant-muted leading-relaxed text-left space-y-3 shadow-md">
-        <div className="flex items-start gap-2.5">
-          <Sparkles className="w-4 h-4 text-elegant-gold shrink-0 mt-0.5" />
-          <p>
-            This connection enables a direct duplex channel to Gemini Pro Live. You can speak to Butler in real-time, ask about your calendar, or dictate notes simply with your voice.
-          </p>
-        </div>
-        <div className="flex items-start gap-2.5">
-          <Volume2 className="w-4 h-4 text-elegant-dark shrink-0 mt-0.5" />
-          <p>
-            Butler will interrupt himself if you start speaking while he is responding, preserving natural conversation flows.
-          </p>
         </div>
       </div>
 
+      {/* Transcript */}
+      {transcript && (
+        <div className="mt-6 max-w-[520px] text-center">
+          <div
+            className="body-lg italic font-serif"
+            style={{ color: "var(--color-b-text-tertiary)", fontFamily: "var(--font-serif)" }}
+          >
+            "{transcript}"
+          </div>
+        </div>
+      )}
+
+      {/* Quick-say chips */}
+      <div className="absolute bottom-10 flex items-center gap-3">
+        {QUICK_SAYS.map((q) => (
+          <button
+            key={q}
+            className="px-4 py-2 rounded-full mono-label transition-colors"
+            style={{
+              background: "rgba(245,239,230,0.08)",
+              color: "var(--color-b-text-tertiary)",
+              border: "1px solid rgba(245,239,230,0.1)",
+            }}
+          >
+            {q}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
+
+const QUICK_SAYS = [
+  "Read my brief",
+  "What's next?",
+  "Summarize inbox",
+  "Hold my calls",
+];
