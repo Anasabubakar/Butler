@@ -1,8 +1,35 @@
-node_modules/
-build/
-dist/
-coverage/
+# Dependencies
+frontend/node_modules/
+
+# Build outputs
+frontend/.next/
+frontend/out/
+backend/butler
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Firebase config (SECURITY: never commit API keys)
+firebase-applet-config.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Go
+backend/vendor/
+
+# PostgreSQL
+pgdata/
+
+# Misc
 *.log
-.env*
-!.env.example
+.claude/
