@@ -40,7 +40,7 @@ Built by [Anas Abubakar](https://github.com/Anasabubakar).
 
 ```bash
 cd frontend
-cp .env.local.example .env.local   # or copy from repo .env.example
+cp ../.env.example .env.local
 npm install
 npm run dev
 ```
