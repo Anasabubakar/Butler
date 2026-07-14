@@ -17,5 +17,5 @@ export default function Home() {
 
   if (loading) return null;
 
-  return <LandingPage onGetStarted={() => router.push("/auth")} />;
+  return <LandingPage onGetStarted={() => router.push("/login")} />;
 }

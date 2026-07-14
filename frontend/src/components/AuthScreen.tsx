@@ -11,8 +11,8 @@ interface AuthScreenProps {
 export default function AuthScreen({ onSignIn, error }: AuthScreenProps) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-b-canvas px-6">
-      <ButlerLogo size={56} />
-      <h2 className="heading-lg mt-6">Sign in to Butler</h2>
+      <ButlerLogo size={56} variant="dark" />
+      <h2 className="h-1 mt-6">Sign in to Butler</h2>
       <p className="body-md text-b-text-secondary mt-2 text-center max-w-sm">
         Connect your Google account to access Calendar, Tasks, Gmail, Drive,
         and Contacts.
@@ -30,7 +30,7 @@ export default function AuthScreen({ onSignIn, error }: AuthScreenProps) {
       >
         Sign in with Google
       </Button>
-      <p className="caption text-b-text-tertiary mt-6 max-w-xs text-center">
+      <p className="body-sm text-b-text-tertiary mt-6 max-w-xs text-center">
         Butler requests access to your workspace for productivity features.
         Your data stays private.
       </p>

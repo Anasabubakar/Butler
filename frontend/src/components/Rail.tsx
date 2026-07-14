@@ -34,12 +34,12 @@ export default function Rail({ active, onSelect }: RailProps) {
       className="h-full flex flex-col items-center py-4 gap-1 border-r border-b-border-subtle"
       style={{ width: 72, background: "var(--color-b-paper)" }}
     >
-      <div
-        className="w-8 h-8 rounded-[8px] flex items-center justify-center mb-4 font-serif font-semibold text-sm"
-        style={{ background: "var(--color-b-ink)", color: "var(--color-b-paper)" }}
-      >
-        B
-      </div>
+      <img
+        src="/images/logo-dark-nobg.svg"
+        alt="Butler"
+        className="mb-4"
+        style={{ height: 32, width: "auto" }}
+      />
 
       {ITEMS.map(({ key, code }) => {
         const isActive = active === key;
