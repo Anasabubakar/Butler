@@ -1,631 +1,189 @@
-import React, { useState, useEffect } from "react";
-import { 
-  Bell, 
-  Slack, 
-  Github, 
-  Mail, 
-  Bookmark, 
-  Sliders, 
-  Trash2, 
-  CheckCircle, 
-  Sparkles, 
-  AlertOctagon, 
-  Send, 
-  Clock, 
-  Archive,
-  RefreshCw,
-  TrendingUp,
-  MessageSquare,
-  Compass
-} from "lucide-react";
-import { GmailMessage } from "../types";
+import React, { useState } from "react";
+import Card from "./Card";
+import Chip from "./Chip";
 
-interface NotificationCenterProps {
-  emails: GmailMessage[];
-}
+type NotifSource = "Gmail" | "Slack" | "GitHub" | "Calendar" | "Notion" | "Butler";
 
-interface NotificationItem {
+interface Notification {
   id: string;
-  source: "slack" | "gmail" | "github" | "jira";
+  source: NotifSource;
   title: string;
-  sender: string;
-  snippet: string;
-  rawDate: string;
-  timestamp: string;
-  priority: "urgent" | "high" | "medium" | "low";
-  score: number;
-  isRead: boolean;
-  actionDetails?: {
-    type: "reply" | "review" | "ticket";
-    placeholder: string;
-    actionLabel: string;
-  };
+  body: string;
+  time: string;
+  read: boolean;
+  tone: "accent" | "success" | "warning" | "danger" | "neutral" | "info";
 }
 
-interface UserRule {
-  id: string;
-  keyword: string;
-  effect: "boost_urgent" | "boost_high" | "demote_low";
-  isActive: boolean;
-}
+const NOTIFICATIONS: Notification[] = [
+  { id: "n1", source: "Gmail",    title: "Kai Rivera replied",           body: "RE: Series-B deck v9 — \"Looks good, one concern on the TAM slide.\"", time: "8m ago",  read: false, tone: "accent"  },
+  { id: "n2", source: "Slack",    title: "#product · Nadia",             body: "Deploy window confirmed for Thursday. Ops is clear.",               time: "12m ago", read: false, tone: "info"    },
+  { id: "n3", source: "GitHub",   title: "PR #142 ready for review",     body: "frontend — Kai opened a clean refactor on the hook layer.",          time: "22m ago", read: false, tone: "success" },
+  { id: "n4", source: "Calendar", title: "Meridian moved to 10:45",      body: "Butler rescheduled — conflict with deploy window resolved.",         time: "34m ago", read: true,  tone: "neutral" },
+  { id: "n5", source: "Notion",   title: "Q3 rituals page drafted",      body: "Butler created the outline — five sections, waiting on your mark.",  time: "1h ago",  read: true,  tone: "neutral" },
+  { id: "n6", source: "GitHub",   title: "CI green on main",             body: "api repo — all checks passed. Deploy ready.",                       time: "1h ago",  read: true,  tone: "success" },
+  { id: "n7", source: "Gmail",    title: "Board Sec. · board pack v3",   body: "Pack ready for review. 62% pre-filled by Butler.",                  time: "2h ago",  read: true,  tone: "accent"  },
+  { id: "n8", source: "Slack",    title: "#ops · deploy ack",            body: "Butler acknowledged the window in your voice.",                     time: "2h ago",  read: true,  tone: "neutral" },
+  { id: "n9", source: "Butler",   title: "Conflict resolved",            body: "Kai 1:1 × school run — held on Slack instead.",                    time: "3h ago",  read: true,  tone: "warning" },
+];
 
-export default function NotificationCenter({ emails }: NotificationCenterProps) {
-  // 1. Initial State for User Rules
-  const [rules, setRules] = useState<UserRule[]>(() => {
-    const saved = localStorage.getItem("butler_prioritization_rules");
-    return saved ? JSON.parse(saved) : [
-      { id: "rule-1", keyword: "Boss", effect: "boost_urgent", isActive: true },
-      { id: "rule-2", keyword: "blocker", effect: "boost_urgent", isActive: true },
-      { id: "rule-3", keyword: "review", effect: "boost_high", isActive: true },
-      { id: "rule-4", keyword: "newsletter", effect: "demote_low", isActive: true }
-    ];
-  });
+const SOURCES: NotifSource[] = ["Gmail", "Slack", "GitHub", "Calendar", "Notion", "Butler"];
 
-  const [newRuleKeyword, setNewRuleKeyword] = useState("");
-  const [newRuleEffect, setNewRuleEffect] = useState<"boost_urgent" | "boost_high" | "demote_low">("boost_high");
+export default function NotificationsDesk() {
+  const [filter, setFilter] = useState<NotifSource | "all">("all");
+  const [items, setItems] = useState(NOTIFICATIONS);
 
-  // 2. Learned Behavior Flags
-  const [learnedBehaviorEnabled, setLearnedBehaviorEnabled] = useState(true);
-  const [frequentSenders, setFrequentSenders] = useState<string[]>(["Kunle Bello", "Sarah Connor", "anasabubakar7000@gmail.com"]);
+  const unreadCount = items.filter((n) => !n.read).length;
+  const filtered = filter === "all" ? items : items.filter((n) => n.source === filter);
 
-  // 3. Notifications list state
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [filterSource, setFilterSource] = useState<"all" | "slack" | "gmail" | "github" | "jira">("all");
-  const [filterPriority, setFilterPriority] = useState<"all" | "urgent" | "high" | "medium" | "low">("all");
+  const markAllRead = () => setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+  const dismiss = (id: string) => setItems((prev) => prev.filter((n) => n.id !== id));
 
-  const [activeActionId, setActiveActionId] = useState<string | null>(null);
-  const [quickActionText, setQuickActionText] = useState("");
-  const [successToast, setSuccessToast] = useState("");
-
-  // Save rules
-  useEffect(() => {
-    localStorage.setItem("butler_prioritization_rules", JSON.stringify(rules));
-    recalculatePriorities();
-  }, [rules, learnedBehaviorEnabled, emails]);
-
-  // Generate original baseline notifications (mixing mock notifications + actual Gmail inbox messages!)
-  const generateBaselineNotifications = (): NotificationItem[] => {
-    const rawMock: NotificationItem[] = [
-      {
-        id: "notif-slack-1",
-        source: "slack",
-        title: "Direct Message: Need Urgent Signoff",
-        sender: "Kunle Bello",
-        snippet: "Hey Boss, we need your digital signature on the budget proposal before 3:00 PM today so we can clear the bank wire. The vendor is waiting.",
-        rawDate: new Date(Date.now() - 300000).toISOString(), // 5 mins ago
-        timestamp: "5 mins ago",
-        priority: "high",
-        score: 80,
-        isRead: false,
-        actionDetails: {
-          type: "reply",
-          placeholder: "Type a Slack message...",
-          actionLabel: "Send Quick Slack"
-        }
-      },
-      {
-        id: "notif-github-1",
-        source: "github",
-        title: "PR review requested: #481 Auth security update",
-        sender: "GitHub Actions",
-        snippet: "Boss, your review is requested on repository: workspace-hub-broker. 'Implement token refreshing routines to secure API endpoints'.",
-        rawDate: new Date(Date.now() - 1800000).toISOString(), // 30 mins ago
-        timestamp: "30 mins ago",
-        priority: "medium",
-        score: 60,
-        isRead: false,
-        actionDetails: {
-          type: "review",
-          placeholder: "Leave feedback or code approval...",
-          actionLabel: "Approve Pull Request"
-        }
-      },
-      {
-        id: "notif-jira-1",
-        source: "jira",
-        title: "BLOCKER Opened: Database Connection Leak",
-        sender: "Sarah Connor (Jira)",
-        snippet: "[JIRA-8902] Critical memory pool exhaustion in PostgreSQL. Container ingress failing with 503 Service Unavailable. Assigned to Database Core.",
-        rawDate: new Date(Date.now() - 3600000).toISOString(), // 1 hr ago
-        timestamp: "1 hr ago",
-        priority: "high",
-        score: 85,
-        isRead: false,
-        actionDetails: {
-          type: "ticket",
-          placeholder: "Add comment to Jira issue...",
-          actionLabel: "Post Jira Comment"
-        }
-      },
-      {
-        id: "notif-slack-2",
-        source: "slack",
-        title: "Mention in #general: Q4 Operational Plan",
-        sender: "Chidi Benson",
-        snippet: "@Boss mentioned: I added the marketing brief. Can we get an initial review of the draft notes stored in the Memory panel?",
-        rawDate: new Date(Date.now() - 7200000).toISOString(), // 2 hrs ago
-        timestamp: "2 hrs ago",
-        priority: "medium",
-        score: 50,
-        isRead: false,
-        actionDetails: {
-          type: "reply",
-          placeholder: "Nudge team on Slack...",
-          actionLabel: "Post in #general"
-        }
-      }
-    ];
-
-    // Combine with synced Google Workspace Gmail inbox messages
-    const emailNotifs: NotificationItem[] = emails.map((mail, idx) => {
-      return {
-        id: `notif-gmail-${mail.id}`,
-        source: "gmail",
-        title: `Gmail: ${mail.subject}`,
-        sender: mail.from,
-        snippet: mail.snippet,
-        rawDate: new Date(Date.now() - 3600000 * (idx + 3)).toISOString(),
-        timestamp: mail.date,
-        priority: "medium",
-        score: 45,
-        isRead: false,
-        actionDetails: {
-          type: "reply",
-          placeholder: "Draft Gmail response...",
-          actionLabel: "Send Quick Email"
-        }
-      };
-    });
-
-    return [...rawMock, ...emailNotifs];
-  };
-
-  // Run the Prioritization Algorithm
-  const recalculatePriorities = () => {
-    const baseList = notifications.length > 0 ? [...notifications] : generateBaselineNotifications();
-
-    const scoredList = baseList.map(item => {
-      let score = 50; // default baseline
-
-      // 1. Base Score adjustments by source channels
-      if (item.source === "jira") score += 10;   // Jira tasks are highly structured
-      if (item.source === "slack") score += 15;  // Slack is real-time chat
-      if (item.source === "github") score += 5;
-
-      // 2. Apply Learned Behavior weightings
-      if (learnedBehaviorEnabled) {
-        const isFreq = frequentSenders.some(sender => 
-          item.sender.toLowerCase().includes(sender.toLowerCase())
-        );
-        if (isFreq) {
-          score += 20; // 20pt boost for frequent partners
-        }
-      }
-
-      // 3. Apply User-Defined Custom Rules
-      rules.forEach(rule => {
-        if (!rule.isActive) return;
-
-        const contentToSearch = `${item.title} ${item.sender} ${item.snippet}`.toLowerCase();
-        const matches = contentToSearch.includes(rule.keyword.toLowerCase());
-
-        if (matches) {
-          if (rule.effect === "boost_urgent") {
-            score += 35;
-          } else if (rule.effect === "boost_high") {
-            score += 15;
-          } else if (rule.effect === "demote_low") {
-            score -= 30;
-          }
-        }
-      });
-
-      // 4. Bound scores between 0 and 100
-      score = Math.max(5, Math.min(99, score));
-
-      // 5. Convert numeric score back to categorical Priority Tag
-      let finalPriority: "urgent" | "high" | "medium" | "low" = "low";
-      if (score >= 85) finalPriority = "urgent";
-      else if (score >= 65) finalPriority = "high";
-      else if (score >= 40) finalPriority = "medium";
-
-      return {
-        ...item,
-        score,
-        priority: finalPriority
-      };
-    });
-
-    // Sort descending by calculated score
-    scoredList.sort((a, b) => b.score - a.score);
-    setNotifications(scoredList);
-  };
-
-  // Initialize notifications on first load
-  useEffect(() => {
-    recalculatePriorities();
-  }, [emails]);
-
-  // Refresh feed simulation
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      recalculatePriorities();
-      setIsRefreshing(false);
-      setSuccessToast("Prioritized notifications feed successfully synced.");
-      setTimeout(() => setSuccessToast(""), 3000);
-    }, 1200);
-  };
-
-  // Add rule
-  const handleAddRule = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRuleKeyword.trim()) return;
-
-    const newRule: UserRule = {
-      id: "rule-" + Math.random().toString(36).substr(2, 9),
-      keyword: newRuleKeyword.trim(),
-      effect: newRuleEffect,
-      isActive: true
-    };
-
-    setRules([...rules, newRule]);
-    setNewRuleKeyword("");
-    setSuccessToast(`Created new sorting rule for "${newRule.keyword}"`);
-    setTimeout(() => setSuccessToast(""), 3000);
-  };
-
-  // Toggle rule
-  const toggleRule = (id: string) => {
-    setRules(rules.map(r => r.id === id ? { ...r, isActive: !r.isActive } : r));
-  };
-
-  // Delete rule
-  const deleteRule = (id: string) => {
-    setRules(rules.filter(r => r.id !== id));
-  };
-
-  // Actions on notifications: Dismiss/Archive
-  const handleDismiss = (id: string) => {
-    setNotifications(notifications.filter(n => n.id !== id));
-    setSuccessToast("Notification archived.");
-    setTimeout(() => setSuccessToast(""), 3000);
-  };
-
-  // Quick Action execution simulation
-  const handleExecuteAction = (id: string, actionType: string) => {
-    if (!quickActionText.trim()) return;
-
-    // Simulate API calls
-    setSuccessToast(`Executing integration request via ${actionType}...`);
-    setTimeout(() => {
-      // Archive/remove after actioned
-      setNotifications(notifications.filter(n => n.id !== id));
-      setActiveActionId(null);
-      setQuickActionText("");
-      setSuccessToast(`Action successful! Broadcast sent via pipeline.`);
-      setTimeout(() => setSuccessToast(""), 4000);
-    }, 1500);
-  };
-
-  const filteredNotifs = notifications.filter(item => {
-    const matchesSource = filterSource === "all" || item.source === filterSource;
-    const matchesPriority = filterPriority === "all" || item.priority === filterPriority;
-    return matchesSource && matchesPriority;
-  });
+  const grouped = SOURCES.reduce<Record<string, Notification[]>>((acc, src) => {
+    const matching = filtered.filter((n) => n.source === src);
+    if (matching.length) acc[src] = matching;
+    return acc;
+  }, {});
 
   return (
-    <div id="notifications-workspace" className="p-8 max-w-7xl mx-auto space-y-8 bg-elegant-bg min-h-screen text-elegant-text font-sans">
-      
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-elegant-border pb-6">
-        <div>
-          <h2 className="text-2xl font-light tracking-wide text-white flex items-center gap-3">
-            <Bell className="w-5 h-5 text-elegant-gold" />
-            Workspace Notification Desk
-          </h2>
-          <p className="text-xs text-elegant-muted mt-1 font-sans">
-            Unified priority inbox scanning live Slack, Gmail, GitHub, and Jira boards.
-          </p>
-        </div>
-        
-        <div className="flex gap-2">
-          <button 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 border border-elegant-gold/30 hover:bg-elegant-gold/10 text-elegant-gold hover:text-white rounded-lg text-[10px] font-mono uppercase tracking-widest transition-all duration-300 cursor-pointer"
+    <div className="w-full h-full overflow-y-auto" style={{ background: "var(--color-b-canvas)" }}>
+      <div className="px-14 pt-14 pb-14 max-w-[1100px]">
+        <h1 className="display-s" style={{ color: "var(--color-b-text-primary)" }}>Notifications</h1>
+        <p className="body-lg mt-4" style={{ color: "var(--color-b-text-secondary)" }}>
+          Everything that arrived while you were away. Butler sorted, grouped, and held the noise.
+        </p>
+
+        {/* Stat strip */}
+        <div
+          className="mt-8 flex items-center gap-8 px-6 py-4 rounded-[14px]"
+          style={{ background: "var(--color-b-paper)", border: "1px solid var(--color-b-border-subtle)" }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="h-1" style={{ color: "var(--color-b-text-primary)" }}>{unreadCount}</span>
+            <span className="mono-label" style={{ color: "var(--color-b-text-tertiary)" }}>unread</span>
+          </div>
+          <div
+            className="w-px h-6"
+            style={{ background: "var(--color-b-border-subtle)" }}
+          />
+          <div className="flex items-center gap-3">
+            <span className="h-1" style={{ color: "var(--color-b-text-primary)" }}>{items.length}</span>
+            <span className="mono-label" style={{ color: "var(--color-b-text-tertiary)" }}>total today</span>
+          </div>
+          <div
+            className="w-px h-6"
+            style={{ background: "var(--color-b-border-subtle)" }}
+          />
+          <div className="flex items-center gap-3">
+            <span className="h-1" style={{ color: "var(--color-b-text-primary)" }}>{Object.keys(grouped).length}</span>
+            <span className="mono-label" style={{ color: "var(--color-b-text-tertiary)" }}>sources active</span>
+          </div>
+          <div className="flex-1" />
+          <button
+            onClick={markAllRead}
+            className="mono-label"
+            style={{ color: "var(--color-b-accent-text)" }}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-            Refresh Priorities
+            Mark all read
           </button>
         </div>
-      </div>
 
-      {successToast && (
-        <div className="bg-elegant-gold/5 border border-elegant-gold/20 rounded-lg p-3 text-center text-xs text-elegant-gold animate-fade-in font-mono">
-          ✨ {successToast}
+        {/* Source filter tabs */}
+        <div
+          className="mt-6 flex gap-6 border-b"
+          style={{ borderColor: "var(--color-b-border-subtle)" }}
+        >
+          <FilterTab
+            label="All"
+            count={items.length}
+            active={filter === "all"}
+            onClick={() => setFilter("all")}
+          />
+          {SOURCES.map((src) => {
+            const count = items.filter((n) => n.source === src).length;
+            if (!count) return null;
+            return (
+              <FilterTab
+                key={src}
+                label={src}
+                count={count}
+                active={filter === src}
+                onClick={() => setFilter(src)}
+              />
+            );
+          })}
         </div>
-      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Prioritization Algorithm Controller (Left sidebar column) */}
-        <div className="lg:col-span-1 space-y-6">
-          
-          {/* Section: Prioritizer Settings */}
-          <div className="bg-elegant-card border border-elegant-border p-6 rounded-2xl shadow-md space-y-5">
-            <div className="flex items-center justify-between border-b border-elegant-border/60 pb-3">
-              <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-elegant-gold" />
-                <h3 className="text-xs font-mono uppercase tracking-wider text-white">Priority Engine</h3>
+        {/* Grouped notification list */}
+        <div className="mt-8 flex flex-col gap-8">
+          {Object.entries(grouped).map(([source, notifs]) => (
+            <div key={source}>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="mono-label" style={{ color: "var(--color-b-accent-text)" }}>{source}</span>
+                <span className="mono-sm" style={{ color: "var(--color-b-text-tertiary)" }}>· {notifs.length}</span>
               </div>
-              <span className="text-[8px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase">V2 Algorithmic</span>
-            </div>
-
-            {/* Learned Behavior Toggle */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-white font-medium">Smart Learned Weighting</span>
-                <button
-                  type="button"
-                  onClick={() => setLearnedBehaviorEnabled(!learnedBehaviorEnabled)}
-                  className={`w-10 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                    learnedBehaviorEnabled ? "bg-elegant-gold" : "bg-elegant-border"
-                  }`}
-                >
-                  <div className={`w-4 h-4 bg-black rounded-full transition-transform ${
-                    learnedBehaviorEnabled ? "translate-x-5" : "translate-x-0"
-                  }`}></div>
-                </button>
-              </div>
-              <p className="text-[10px] text-elegant-muted leading-relaxed">
-                Automatically elevates senders/contacts with whom you collaborate most frequently (e.g. <strong>{frequentSenders.slice(0,2).join(", ")}</strong>).
-              </p>
-            </div>
-
-            {/* Rules config list */}
-            <div className="space-y-3 pt-3 border-t border-elegant-border/60">
-              <span className="text-[10px] font-mono text-elegant-muted uppercase tracking-wider block">Keyword Sorting Rules</span>
-              
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                {rules.map((rule) => (
-                  <div key={rule.id} className="flex items-center justify-between gap-2 p-2.5 bg-elegant-bg border border-elegant-border rounded-lg text-xs font-sans">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <input 
-                        type="checkbox" 
-                        checked={rule.isActive}
-                        onChange={() => toggleRule(rule.id)}
-                        className="rounded border-elegant-border text-elegant-gold focus:ring-elegant-gold/35"
-                      />
-                      <div className="truncate">
-                        <span className="font-mono text-[11px] text-white font-semibold">"{rule.keyword}"</span>
-                        <span className={`text-[9px] block font-mono capitalize ${
-                          rule.effect === "boost_urgent" 
-                            ? "text-red-400" 
-                            : rule.effect === "boost_high" 
-                              ? "text-elegant-gold" 
-                              : "text-blue-400"
-                        }`}>
-                          {rule.effect.replace("_", " ")}
-                        </span>
+              <div className="flex flex-col gap-2">
+                {notifs.map((n) => (
+                  <Card
+                    key={n.id}
+                    tone="paper"
+                    className="px-5 py-4 flex items-start gap-4 transition-opacity"
+                    style={{ opacity: n.read ? 0.7 : 1 }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
+                      style={{ background: n.read ? "transparent" : "var(--color-b-accent)" }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-3">
+                        <span className="body-md-med truncate" style={{ color: "var(--color-b-text-primary)" }}>{n.title}</span>
+                        <Chip tone={n.tone}>{n.source}</Chip>
                       </div>
+                      <div className="body-sm mt-1 truncate" style={{ color: "var(--color-b-text-secondary)" }}>{n.body}</div>
                     </div>
-                    <button 
-                      onClick={() => deleteRule(rule.id)}
-                      className="text-elegant-muted hover:text-red-400 p-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                      <span className="mono-sm" style={{ color: "var(--color-b-text-tertiary)" }}>{n.time}</span>
+                      <button
+                        onClick={() => dismiss(n.id)}
+                        className="mono-label"
+                        style={{ color: "var(--color-b-text-tertiary)" }}
+                      >
+                        dismiss
+                      </button>
+                    </div>
+                  </Card>
                 ))}
               </div>
             </div>
+          ))}
 
-            {/* Add rule form */}
-            <form onSubmit={handleAddRule} className="space-y-3 pt-3 border-t border-elegant-border/60">
-              <span className="text-[10px] font-mono text-elegant-muted uppercase tracking-wider block">Add Custom Sorter</span>
-              
-              <div className="space-y-2 text-xs">
-                <input 
-                  type="text" 
-                  placeholder="Keyword (e.g. 'Meeting', 'Patch')" 
-                  value={newRuleKeyword}
-                  onChange={(e) => setNewRuleKeyword(e.target.value)}
-                  className="w-full bg-elegant-bg border border-elegant-border text-xs px-3.5 py-2 rounded-lg text-white placeholder-elegant-dark focus:outline-none focus:border-elegant-border-light font-sans"
-                />
-                
-                <select
-                  value={newRuleEffect}
-                  onChange={(e: any) => setNewRuleEffect(e.target.value)}
-                  className="w-full bg-elegant-bg border border-elegant-border text-xs px-3.5 py-2 rounded-lg text-white focus:outline-none focus:border-elegant-border-light font-sans"
-                >
-                  <option value="boost_urgent">Escalate to URGENT (+35pts)</option>
-                  <option value="boost_high">Boost to HIGH (+15pts)</option>
-                  <option value="demote_low">Demote to LOW (-30pts)</option>
-                </select>
+          {filtered.length === 0 && (
+            <div className="py-20 text-center">
+              <div className="body-md" style={{ color: "var(--color-b-text-tertiary)" }}>
+                All clear, Boss. Nothing to show here.
               </div>
-
-              <button
-                type="submit"
-                className="w-full py-2 border border-elegant-gold/30 hover:bg-elegant-gold/10 text-elegant-gold hover:text-white rounded-lg text-[10px] font-mono uppercase tracking-widest transition-all cursor-pointer"
-              >
-                + Inject Rule
-              </button>
-            </form>
-          </div>
-
-        </div>
-
-        {/* Unified Notifications Feed */}
-        <div className="lg:col-span-2 space-y-4">
-          
-          {/* Filters Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-elegant-card border border-elegant-border px-4 py-3 rounded-xl shadow-sm text-xs">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[10px] text-elegant-muted uppercase mr-1">Source:</span>
-              {(["all", "slack", "gmail", "github", "jira"] as const).map(src => (
-                <button
-                  key={src}
-                  onClick={() => setFilterSource(src)}
-                  className={`px-2.5 py-1 rounded font-mono text-[10px] uppercase tracking-wider transition-colors ${
-                    filterSource === src 
-                      ? "bg-elegant-gold/10 text-elegant-gold border border-elegant-gold/30" 
-                      : "text-elegant-muted hover:text-white"
-                  }`}
-                >
-                  {src}
-                </button>
-              ))}
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[10px] text-elegant-muted uppercase mr-1">Priority:</span>
-              {(["all", "urgent", "high", "medium", "low"] as const).map(pri => (
-                <button
-                  key={pri}
-                  onClick={() => setFilterPriority(pri)}
-                  className={`px-2.5 py-1 rounded font-mono text-[10px] uppercase tracking-wider transition-colors ${
-                    filterPriority === pri 
-                      ? "bg-white/10 text-white" 
-                      : "text-elegant-muted hover:text-white"
-                  }`}
-                >
-                  {pri}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Feed Container */}
-          <div className="space-y-3">
-            {filteredNotifs.map((item) => {
-              const isOpenAction = activeActionId === item.id;
-              
-              return (
-                <div 
-                  key={item.id}
-                  className={`bg-elegant-card border rounded-xl p-5 shadow-sm transition-all duration-300 ${
-                    item.priority === "urgent"
-                      ? "border-red-500/20 shadow-[0_0_12px_rgba(239,68,68,0.03)]"
-                      : item.priority === "high"
-                        ? "border-elegant-gold/25"
-                        : "border-elegant-border"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 min-w-0">
-                      {/* Brand Icon wrapper */}
-                      <div className={`p-2.5 rounded-lg border shrink-0 ${
-                        item.source === "slack" 
-                          ? "bg-purple-500/5 border-purple-500/20 text-purple-400"
-                          : item.source === "gmail"
-                            ? "bg-red-500/5 border-red-500/20 text-red-400"
-                            : item.source === "github"
-                              ? "bg-white/5 border-white/20 text-neutral-300"
-                              : "bg-blue-500/5 border-blue-500/20 text-blue-400"
-                      }`}>
-                        {item.source === "slack" && <Slack className="w-4 h-4" />}
-                        {item.source === "gmail" && <Mail className="w-4 h-4" />}
-                        {item.source === "github" && <Github className="w-4 h-4" />}
-                        {item.source === "jira" && <Bookmark className="w-4 h-4" />}
-                      </div>
-
-                      <div className="min-w-0 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-[8px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${
-                            item.priority === "urgent"
-                              ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                              : item.priority === "high"
-                                ? "bg-elegant-gold/10 text-elegant-gold border border-elegant-gold/20"
-                                : item.priority === "medium"
-                                  ? "bg-blue-500/10 text-blue-400 border border-blue-500/10"
-                                  : "bg-elegant-bg text-elegant-muted border border-elegant-border"
-                          }`}>
-                            {item.priority} (score: {item.score})
-                          </span>
-                          <span className="text-[10px] font-mono text-elegant-muted">from <strong>{item.sender}</strong></span>
-                        </div>
-                        <h4 className="text-xs font-semibold text-white tracking-wide font-sans">{item.title}</h4>
-                        <p className="text-[11px] text-elegant-muted leading-relaxed font-sans">{item.snippet}</p>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0 space-y-1.5">
-                      <span className="text-[9px] font-mono text-elegant-dark block">{item.timestamp}</span>
-                      <div className="flex gap-1.5 justify-end">
-                        <button 
-                          onClick={() => handleDismiss(item.id)}
-                          className="p-1.5 bg-elegant-bg border border-elegant-border text-elegant-muted hover:text-white rounded hover:border-elegant-border-light cursor-pointer"
-                          title="Archive Notification"
-                        >
-                          <Archive className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quick Action Container */}
-                  {item.actionDetails && (
-                    <div className="mt-4 pt-3 border-t border-elegant-border/40 space-y-3">
-                      {!isOpenAction ? (
-                        <div className="flex justify-end">
-                          <button
-                            onClick={() => setActiveActionId(item.id)}
-                            className="px-3 py-1 bg-elegant-gold/5 border border-elegant-gold/20 text-elegant-gold hover:bg-elegant-gold/10 rounded text-[10px] font-mono uppercase tracking-wider transition-all cursor-pointer"
-                          >
-                            ⚡ Fast-Act Interface
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="bg-elegant-bg border border-elegant-border p-3.5 rounded-lg space-y-3 animate-fade-in">
-                          <div className="flex justify-between items-center text-[9px] font-mono text-elegant-muted">
-                            <span>INTEGRATION ACTION PORTAL ({item.source.toUpperCase()})</span>
-                            <button 
-                              onClick={() => setActiveActionId(null)}
-                              className="text-red-400 hover:underline"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={quickActionText}
-                              onChange={(e) => setQuickActionText(e.target.value)}
-                              placeholder={item.actionDetails.placeholder}
-                              className="flex-1 bg-elegant-card border border-elegant-border text-xs px-3.5 py-1.5 rounded-md text-white placeholder-elegant-dark focus:outline-none focus:border-elegant-border-light font-sans"
-                            />
-                            <button
-                              onClick={() => handleExecuteAction(item.id, item.source)}
-                              disabled={!quickActionText.trim()}
-                              className="px-4 py-1.5 bg-elegant-gold text-neutral-950 font-bold text-[10px] font-mono uppercase tracking-wider rounded-md disabled:opacity-40 cursor-pointer"
-                            >
-                              {item.actionDetails.actionLabel}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {filteredNotifs.length === 0 && (
-              <div className="text-center py-20 border border-dashed border-elegant-border rounded-xl bg-elegant-card/5">
-                <CheckCircle className="w-8 h-8 text-emerald-500/80 mx-auto mb-3" />
-                <h4 className="text-xs font-mono uppercase tracking-widest text-elegant-muted">Inbox is pristine, Boss</h4>
-                <p className="text-[11px] text-elegant-dark max-w-sm mx-auto mt-1 leading-relaxed">
-                  No notifications matching your filtering parameters remain in the priority queues.
-                </p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-
       </div>
-
     </div>
+  );
+}
+
+function FilterTab({ label, count, active, onClick }: { label: string; count: number; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="pb-3 relative"
+      style={{ color: active ? "var(--color-b-text-primary)" : "var(--color-b-text-tertiary)" }}
+    >
+      <span className="body-md-med">{label} · {count}</span>
+      {active && (
+        <span
+          className="absolute left-0 right-0 -bottom-px h-0.5"
+          style={{ background: "var(--color-b-accent)" }}
+        />
+      )}
+    </button>
   );
 }
