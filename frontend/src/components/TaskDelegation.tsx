@@ -186,3 +186,40 @@ export default function TaskDelegation() {
           ))}
         </div>
 
+        {error && (
+          <p className="body-sm text-b-danger mt-6" role="alert">
+            {error}
+          </p>
+        )}
+
+        {loading ? (
+          <p className="body-sm text-b-text-tertiary mt-10 animate-pulse">Loading…</p>
+        ) : showSplit ? (
+          <div className="mt-10 grid lg:grid-cols-2 gap-10">
+            <div>
+              <p className="mono-label text-b-accent-text mb-4">
+                AWAITING YOUR NOD · {awaiting.length}
+              </p>
+              <div className="flex flex-col gap-4">
+                {awaiting.length === 0 ? (
+                  <Card tone="paper" className="p-8">
+                    <p className="body-md text-b-text-secondary">
+                      Nothing awaiting approval. When Butler prepares a draft, it will appear here.
+                    </p>
+                  </Card>
+                ) : (
+                  awaiting.map((d) => (
+                    <DelegationCard
+                      key={d.id}
+                      item={d}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                      busy={busyId === d.id}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="mono-label text-b-text-tertiary mb-4">
