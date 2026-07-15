@@ -31,3 +31,35 @@ interface GoogleMessageDetail {
   id: string;
   snippet?: string;
   internalDate?: string;
+  payload?: {
+    headers?: Array<{ name: string; value: string }>;
+  };
+}
+
+export default function DashboardHome() {
+  const { user, hasWorkspace, getGoogleAccessToken, reconnectWorkspace } = useAuth();
+  const router = useRouter();
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [emails, setEmails] = useState<GmailMessage[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [delegations, setDelegations] = useState<Delegation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchWorkspaceData = useCallback(async () => {
+    setIsLoading(true);
+    const token = getGoogleAccessToken();
+
+    if (token) {
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [calRes, taskRes, gmailRes] = await Promise.allSettled([
+          fetch(
+            "https://www.googleapis.com/calendar/v3/calendars/primary/events?" +
+              new URLSearchParams({
+                timeMin: new Date().toISOString(),
+                timeMax: new Date(Date.now() + 86400000).toISOString(),
+                maxResults: "10",
+                singleEvents: "true",
+                orderBy: "startTime",
