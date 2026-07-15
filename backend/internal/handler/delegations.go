@@ -76,3 +76,29 @@ func (h *DelegationsHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err.Error() == "delegations: permission denied" {
 			writeError(w, http.StatusForbidden, "permission denied")
+			return
+		}
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, d)
+}
+
+// Reject handles POST /api/delegations/{id}/reject.
+func (h *DelegationsHandler) Reject(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	id := chi.URLParam(r, "id")
+
+	d, err := h.svc.Reject(r.Context(), userID, id)
+	if err != nil {
+		if err.Error() == "delegations: permission denied" {
+			writeError(w, http.StatusForbidden, "permission denied")
+			return
+		}
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, d)
+}
