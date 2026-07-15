@@ -268,3 +268,48 @@ export default function ChatInterface() {
                       </p>
                       {msg.groundingSources && msg.groundingSources.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-b-border-subtle">
+                          <p className="mono-label text-b-text-tertiary mb-1">Sources</p>
+                          {msg.groundingSources.map((s, i) => (
+                            <a
+                              key={`${s.uri}-${i}`}
+                              href={s.uri}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block text-b-accent-text body-sm hover:underline"
+                            >
+                              {s.title}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-w-[560px] px-4 py-3 rounded-[14px] bg-b-ink text-b-text-inverse">
+                    <p className="body-md whitespace-pre-wrap">{msg.text}</p>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {sending && (
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              className="flex gap-3 max-w-[720px]"
+            >
+              <div className="w-8 h-8 shrink-0 rounded-[8px] bg-b-accent-soft flex items-center justify-center">
+                <ButlerLogo size={24} variant="dark" />
+              </div>
+              <p className="body-sm text-b-text-tertiary animate-pulse pt-1">Butler is thinking…</p>
+            </motion.div>
+          )}
+        </div>
+
+        <div className="shrink-0 px-10 pb-8">
+          <div className="rounded-[20px] border border-b-border-default bg-b-raised shadow-[0_8px_24px_rgba(26,15,8,0.08)] p-5">
+            <p className="body-lg text-b-text-tertiary mb-4">Ask Butler — or paste, dictate, plan.</p>
+
+            <div className="flex flex-wrap gap-1 p-1.5 rounded-full bg-b-sunken w-fit mb-4" role="tablist" aria-label="Chat mode">
