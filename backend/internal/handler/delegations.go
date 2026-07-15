@@ -50,3 +50,29 @@ func (h *DelegationsHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 // List handles GET /api/delegations.
+func (h *DelegationsHandler) List(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+
+	var statusFilter *string
+	if s := r.URL.Query().Get("status"); s != "" {
+		statusFilter = &s
+	}
+
+	delegations, err := h.svc.GetAll(r.Context(), userID, statusFilter)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, emptyJSONArray(delegations))
+}
+
+// Approve handles POST /api/delegations/{id}/approve.
+func (h *DelegationsHandler) Approve(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	id := chi.URLParam(r, "id")
+
+	d, err := h.svc.Approve(r.Context(), userID, id)
+	if err != nil {
+		if err.Error() == "delegations: permission denied" {
+			writeError(w, http.StatusForbidden, "permission denied")
