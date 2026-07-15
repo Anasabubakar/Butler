@@ -1,7 +1,7 @@
 "use client";
 
 import type { User } from "firebase/auth";
-import type { CalendarEvent, Task, GmailMessage, Note } from "@/types";
+import type { CalendarEvent, GmailMessage, Task, Note } from "@/types";
 import Card from "./Card";
 import Chip from "./Chip";
 import Button from "./Button";
