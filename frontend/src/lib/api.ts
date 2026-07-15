@@ -23,3 +23,27 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   return res.json();
 }
+
+async function requestArray<T>(path: string, options: RequestInit = {}): Promise<T[]> {
+  const data = await request<T[] | null>(path, options);
+  return Array.isArray(data) ? data : [];
+}
+
+export const api = {
+  butler: {
+    chat: (data: {
+      text: string;
+      mode: string;
+      threadId?: string;
+      lat?: number;
+      lng?: number;
+    }) =>
+      request<{
+        text: string;
+        thinking?: string;
+        groundingSources?: Array<{ title: string; uri: string }>;
+        threadId: string;
+        modelUsed: string;
+      }>("/api/butler/chat", { method: "POST", body: JSON.stringify(data) }),
+
+    transcribe: (data: { audioBase64: string; mimeType: string }) =>
