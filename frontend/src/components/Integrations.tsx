@@ -110,3 +110,40 @@ const SERVICES: Service[] = [
     group: "automation",
   },
   {
+    id: "n8n",
+    name: "n8n",
+    role: "self-hosted flows",
+    scopes: "Webhooks · Workflows",
+    status: "coming_soon",
+    group: "automation",
+  },
+];
+
+export default function Integrations({ hasWorkspace, onConnectWorkspace }: IntegrationsProps) {
+  const [tab, setTab] = useState<"all" | "connected" | "available" | "coming_soon">("all");
+  const [connecting, setConnecting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const resolved = SERVICES.map((s) => {
+    if (s.group === "google") {
+      return {
+        ...s,
+        status: (hasWorkspace ? "connected" : "available") as ServiceStatus,
+        sync: hasWorkspace ? "live" : "—",
+      };
+    }
+    return { ...s, sync: "—" };
+  });
+
+  const connected = resolved.filter((s) => s.status === "connected");
+  const available = resolved.filter((s) => s.status === "available");
+  const coming = resolved.filter((s) => s.status === "coming_soon");
+
+  const list =
+    tab === "all"
+      ? resolved
+      : tab === "connected"
+      ? connected
+      : tab === "available"
+      ? available
+      : coming;
