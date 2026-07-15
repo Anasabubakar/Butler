@@ -86,3 +86,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await logout();
       setUser(null);
       setAccessToken(null);
+      setHasWorkspace(false);
+    } catch (error) {
+      console.error("Sign-out failed:", error);
+    }
+  }, []);
+
+  const reconnectWorkspace = useCallback(async () => {
+    try {
+      const token = await reconnectGoogleWorkspace();
+      const ok = Boolean(token);
+      setHasWorkspace(ok);
+      return ok;
+    } catch (error) {
+      console.error("Workspace reconnect failed:", error);
+      return false;
+    }
+  }, []);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
