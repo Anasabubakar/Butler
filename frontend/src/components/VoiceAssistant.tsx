@@ -137,3 +137,49 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
         }
 
         setState("speaking");
+        const arrayBuffer =
+          event.data instanceof Blob ? await event.data.arrayBuffer() : event.data;
+        try {
+          const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+          const bufferSource = audioCtx.createBufferSource();
+          bufferSource.buffer = audioBuffer;
+          bufferSource.connect(audioCtx.destination);
+          bufferSource.onended = () => setState("listening");
+          bufferSource.start();
+        } catch {
+          setState("listening");
+        }
+      };
+
+      ws.onclose = () => {
+        if (state !== "paused") setState("idle");
+      };
+      ws.onerror = () => {
+        setError("Voice connection failed.");
+        setState("error");
+        cleanup();
+      };
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Microphone or connection failed.");
+      setState("error");
+      cleanup();
+    }
+  }, [cleanup, state]);
+
+  useEffect(() => {
+    void startSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const togglePause = () => {
+    if (state === "paused" || state === "idle" || state === "error") {
+      void startSession();
+    } else {
+      cleanup();
+      setState("paused");
+    }
+  };
+
+  const sendTranscriptToChat = () => {
+    if (transcript.length === 0) return;
+    const text = transcript.join(" ");
