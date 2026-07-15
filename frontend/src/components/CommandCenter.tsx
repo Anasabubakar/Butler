@@ -246,3 +246,52 @@ export default function CommandCenter({
                 </div>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={onOpenNotifications}
+              className="body-sm-med mt-4 text-b-accent-text"
+            >
+              Open notifications desk →
+            </button>
+          </Card>
+
+          <Card tone="raised" className="col-span-12 xl:col-span-4 p-6 min-h-[320px]">
+            <div className="mono-label mb-2 text-b-text-tertiary">
+              Delegated · {awaiting.length} pending
+            </div>
+            <h3 className="type-h3 mb-4 text-b-text-primary">Awaiting you.</h3>
+            <div className="flex flex-col gap-4">
+              {awaiting.length === 0 && (
+                <p className="body-sm text-b-text-tertiary">
+                  No drafts waiting. Create one from Delegated Work or ask Butler.
+                </p>
+              )}
+              {awaiting.slice(0, 3).map((d) => (
+                <div key={d.id}>
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-1">
+                    <span className="mono-label shrink-0 text-b-accent-text">
+                      {d.service}
+                    </span>
+                    {d.context && (
+                      <span className="mono-label min-w-0 text-b-text-tertiary">
+                        · {d.context}
+                      </span>
+                    )}
+                  </div>
+                  <div className="body-sm-med leading-snug text-b-text-primary">{d.title}</div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Button size="sm" variant="primary" onClick={onOpenDelegation}>
+                      Review
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card tone="raised" className="col-span-12 xl:col-span-4 p-6 min-h-[260px]">
+            <div className="mono-label mb-2 text-b-text-tertiary">Memory · recent</div>
+            <h3 className="type-h4 mb-4 text-b-text-primary">What Butler remembers.</h3>
+            <div className="flex flex-col gap-2.5">
+              {notes.length === 0 && (
+                <p className="body-sm text-b-text-tertiary">
