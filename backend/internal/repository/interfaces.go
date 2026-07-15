@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/gamp/butler/internal/model"
 )
@@ -35,10 +36,12 @@ type DelegationsRepository interface {
 
 // NotificationsRepository persists notifications.
 type NotificationsRepository interface {
+	Create(ctx context.Context, n *model.Notification) error
 	GetAllByUser(ctx context.Context, userID string, source *string) ([]*model.Notification, error)
 	GetByID(ctx context.Context, id string) (*model.Notification, error)
 	MarkRead(ctx context.Context, id string) error
 	MarkAllRead(ctx context.Context, userID string) error
+	ExistsRecent(ctx context.Context, userID, title string, since time.Time) (bool, error)
 }
 
 // SettingsRepository persists user settings.

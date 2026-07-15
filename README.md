@@ -92,7 +92,14 @@ LINEAR_CLIENT_ID=
 LINEAR_CLIENT_SECRET=
 ```
 
-Google Workspace connects via Firebase popup on the client, then the access token is vaulted server-side (`POST /api/integrations/google`). GitHub / Slack / Notion / Linear use standard OAuth when their client credentials are set.
+Google Workspace connects via Firebase popup on the client, then the access token is vaulted server-side (`POST /api/integrations/google`). After vaulting, Command Center loads via:
+
+- `GET /api/workspace/brief` — calendar, tasks, mail from vaulted token
+- `POST /api/workspace/sync` — same + proactive notifications/draft delegations
+
+Chat agent tools can read Workspace and **queue** Gmail/calendar actions as Delegated Work (approve-before-send).
+
+GitHub / Slack / Notion / Linear use standard OAuth when their client credentials are set.
 
 ---
 

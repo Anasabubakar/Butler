@@ -15,6 +15,7 @@ type Handlers struct {
 	Notifications *handler.NotificationsHandler
 	Settings      *handler.SettingsHandler
 	Integrations  *handler.IntegrationsHandler
+	Workspace     *handler.WorkspaceHandler
 	WS            *handler.WSHandler
 }
 
@@ -85,6 +86,11 @@ func New(h Handlers, auth *middleware.FirebaseAuth, corsOrigins []string) chi.Ro
 			intg.Post("/google", h.Integrations.RegisterGoogle)
 			intg.Post("/{provider}/connect", h.Integrations.Connect)
 			intg.Delete("/{provider}", h.Integrations.Disconnect)
+		})
+
+		api.Route("/workspace", func(ws chi.Router) {
+			ws.Get("/brief", h.Workspace.Brief)
+			ws.Post("/sync", h.Workspace.Sync)
 		})
 	})
 

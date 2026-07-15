@@ -44,6 +44,7 @@ export const api = {
         groundingSources?: Array<{ title: string; uri: string }>;
         threadId: string;
         modelUsed: string;
+        actionsQueued?: number;
       }>("/api/butler/chat", { method: "POST", body: JSON.stringify(data) }),
 
     transcribe: (data: { audioBase64: string; mimeType: string }) =>
@@ -161,7 +162,49 @@ export const api = {
         body: JSON.stringify(data),
       }),
   },
+
+  workspace: {
+    brief: () => request<WorkspaceBrief>("/api/workspace/brief"),
+
+    sync: () =>
+      request<WorkspaceSyncResult>("/api/workspace/sync", { method: "POST" }),
+  },
 };
+
+export interface WorkspaceBrief {
+  events: Array<{
+    id: string;
+    summary: string;
+    start: string;
+    end: string;
+    description?: string;
+    location?: string;
+  }>;
+  tasks: Array<{
+    id: string;
+    title: string;
+    due?: string;
+    status: string;
+  }>;
+  emails: Array<{
+    id: string;
+    subject: string;
+    from: string;
+    snippet: string;
+    date: string;
+  }>;
+  conflicts: Array<{ time: string; title: string; resolution: string }>;
+  connected: boolean;
+  tokenExpired?: boolean;
+  fetchedAt: string;
+}
+
+export interface WorkspaceSyncResult {
+  brief: WorkspaceBrief;
+  notificationsCreated: number;
+  delegationsCreated: number;
+  proactiveEnabled: boolean;
+}
 
 export interface IntegrationCatalogItem {
   id: string;

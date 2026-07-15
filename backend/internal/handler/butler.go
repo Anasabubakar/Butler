@@ -35,6 +35,7 @@ type chatResponse struct {
 	GroundingSources []model.GroundingSource `json:"groundingSources,omitempty"`
 	ThreadID         string                  `json:"threadId"`
 	ModelUsed        string                  `json:"modelUsed"`
+	ActionsQueued    int                     `json:"actionsQueued,omitempty"`
 }
 
 // Chat handles POST /api/butler/chat.
@@ -76,6 +77,7 @@ func (h *ButlerHandler) Chat(w http.ResponseWriter, r *http.Request) {
 		GroundingSources: result.GroundingSources,
 		ThreadID:         result.ThreadID,
 		ModelUsed:        result.ModelUsed,
+		ActionsQueued:    result.ActionsQueued,
 	})
 }
 

@@ -37,9 +37,27 @@ func NewClient(apiKey string) *Client {
 // --- Request/Response types for the Gemini REST API ---
 
 type geminiPart struct {
-	Text       string          `json:"text,omitempty"`
-	InlineData *geminiBlob     `json:"inlineData,omitempty"`
-	Thought    *bool           `json:"thought,omitempty"`
+	Text             string                   `json:"text,omitempty"`
+	InlineData       *geminiBlob              `json:"inlineData,omitempty"`
+	Thought          *bool                    `json:"thought,omitempty"`
+	FunctionCall     *geminiFunctionCall      `json:"functionCall,omitempty"`
+	FunctionResponse *geminiFunctionResponse  `json:"functionResponse,omitempty"`
+}
+
+type geminiFunctionCall struct {
+	Name string         `json:"name"`
+	Args map[string]any `json:"args,omitempty"`
+}
+
+type geminiFunctionResponse struct {
+	Name     string         `json:"name"`
+	Response map[string]any `json:"response"`
+}
+
+type functionDeclaration struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description,omitempty"`
+	Parameters  map[string]any `json:"parameters,omitempty"`
 }
 
 type geminiBlob struct {
@@ -68,8 +86,9 @@ type googleSearchTool struct{}
 type googleMapsTool struct{}
 
 type geminiTool struct {
-	GoogleSearch              *googleSearchTool          `json:"googleSearch,omitempty"`
-	GoogleMaps               *googleMapsTool             `json:"googleMaps,omitempty"`
+	GoogleSearch         *googleSearchTool      `json:"googleSearch,omitempty"`
+	GoogleMaps           *googleMapsTool        `json:"googleMaps,omitempty"`
+	FunctionDeclarations []functionDeclaration  `json:"functionDeclarations,omitempty"`
 }
 
 type dynamicRetrievalConfig struct {

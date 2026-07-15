@@ -82,12 +82,15 @@ func main() {
 	geminiClient := gemini.NewClient(cfg.GeminiAPIKey)
 	liveBridge := gemini.NewLiveBridge(cfg.GeminiAPIKey)
 
-	chatSvc := service.NewChatService(geminiClient, chatRepo)
 	notesSvc := service.NewNotesService(notesRepo)
 	delegationsSvc := service.NewDelegationsService(delegationsRepo)
 	notificationsSvc := service.NewNotificationsService(notificationsRepo)
 	settingsSvc := service.NewSettingsService(settingsRepo)
 	integrationsSvc := service.NewIntegrationsService(connectionsRepo, vault, cfg.PublicAPIBase, cfg.AppBaseURL)
+	workspaceSvc := service.NewWorkspaceService(
+		connectionsRepo, notificationsRepo, delegationsRepo, vault, cfg.EnableProactiveSync,
+	)
+	chatSvc := service.NewChatService(geminiClient, chatRepo, workspaceSvc, notesSvc, delegationsSvc)
 
 	handlers := router.Handlers{
 		Butler:        handler.NewButlerHandler(chatSvc),
@@ -96,6 +99,7 @@ func main() {
 		Notifications: handler.NewNotificationsHandler(notificationsSvc),
 		Settings:      handler.NewSettingsHandler(settingsSvc),
 		Integrations:  handler.NewIntegrationsHandler(integrationsSvc),
+		Workspace:     handler.NewWorkspaceHandler(workspaceSvc),
 		WS:            handler.NewWSHandler(liveBridge, firebaseAuth, cfg.CORSOrigins),
 	}
 

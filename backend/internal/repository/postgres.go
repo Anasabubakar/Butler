@@ -239,6 +239,26 @@ func NewPgNotificationsRepository(pool *pgxpool.Pool) *PgNotificationsRepository
 	return &PgNotificationsRepository{pool: pool}
 }
 
+func (r *PgNotificationsRepository) Create(ctx context.Context, n *model.Notification) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO notifications (id, user_id, title, body, source, tone, read, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		n.ID, n.UserID, n.Title, n.Body, n.Source, n.Tone, n.Read, n.CreatedAt,
+	)
+	return err
+}
+
+func (r *PgNotificationsRepository) ExistsRecent(ctx context.Context, userID, title string, since time.Time) (bool, error) {
+	var exists bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS(
+			SELECT 1 FROM notifications
+			WHERE user_id = $1 AND title = $2 AND created_at >= $3
+		)`, userID, title, since,
+	).Scan(&exists)
+	return exists, err
+}
+
 func (r *PgNotificationsRepository) GetAllByUser(ctx context.Context, userID string, source *string) ([]*model.Notification, error) {
 	query := `SELECT id, user_id, title, body, source, tone, read, created_at
 		 FROM notifications WHERE user_id = $1`
