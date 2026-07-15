@@ -86,20 +86,13 @@ CORS_ORIGINS=https://your-vercel-domain.vercel.app
 The Next.js app lives in `frontend/`, not the repo root. This repo includes a
 root `vercel.json` that points Vercel at the right directory:
 
-```json
-{
-  "buildCommand": "cd frontend && npm run build",
-  "installCommand": "cd frontend && npm install",
-  "outputDirectory": "frontend/.next",
-  "framework": "nextjs"
-}
-```
-
-If you prefer to set it in the Vercel dashboard instead:
+Set **Root Directory** to `frontend` in the Vercel dashboard (Project Settings →
+General). The repo `vercel.json` files assume that layout — do **not** use
+`cd frontend` in install/build commands when Root Directory is already `frontend`.
 
 - **Root Directory:** `frontend`
-- **Build Command:** `npm run build`
-- **Output Directory:** `.next` (auto-detected)
+- **Build Command:** `npm run build` (default)
+- **Output Directory:** `.next` (default)
 
 ### Required Vercel environment variables
 
