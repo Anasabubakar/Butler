@@ -394,3 +394,53 @@ function IntegrationRow({
         }`}
       >
         {state === "connected" ? "live" : state === "available" ? "connect" : "soon"}
+      </span>
+    </div>
+  );
+}
+
+function greetingForHour(h: number) {
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function briefFromData(
+  emails: GmailMessage[],
+  tasks: Task[],
+  events: CalendarEvent[],
+  awaiting: Delegation[]
+) {
+  const bullets: string[] = [];
+  if (awaiting.length) {
+    bullets.push(
+      `· ${awaiting.length} draft${awaiting.length === 1 ? "" : "s"} await your approval in Delegated Work.`
+    );
+  }
+  if (emails.length) {
+    const first = emails[0];
+    bullets.push(
+      `· ${first.from}'s message on "${truncate(first.subject, 40)}" is in the inbox.`
+    );
+  }
+  if (events.length > 0) {
+    bullets.push(
+      `· Next: ${formatEventTime(events[0].start)} — ${truncate(events[0].summary, 48)}.`
+    );
+  }
+  const pending = tasks.filter((t) => t.status !== "completed").slice(0, 1);
+  if (pending.length) {
+    bullets.push(`· Open task: "${truncate(pending[0].title, 60)}".`);
+  }
+  if (!bullets.length) {
+    return "· Overnight was quiet — no fresh urgencies.\n· Your day is clear; I'm holding it that way.\n· When you're ready, open chat and put me to work.";
+  }
+  while (bullets.length < 3) {
+    bullets.push("· The rest of the day is prepared — ask me if you need a draft.");
+  }
+  return bullets.slice(0, 3).join("\n");
+}
+
+function truncate(s: string, n: number) {
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
