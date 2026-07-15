@@ -104,3 +104,39 @@ export default function NotificationCenter() {
     <div className="h-full overflow-y-auto bg-b-canvas">
       <div className="px-14 pt-14 pb-14 max-w-[1400px]">
         <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="display-s text-b-text-primary">Notifications Desk</h1>
+            <p className="body-lg mt-4 text-b-text-secondary max-w-3xl">
+              {items.length === 0
+                ? "Your desk is clear. Butler will surface what needs a decision."
+                : `${unread.length} need${unread.length === 1 ? "s" : ""} you. The rest is filed.`}
+            </p>
+          </div>
+          {unread.length > 0 && (
+            <Button variant="secondary" size="sm" onClick={handleMarkAll} className="shrink-0 mt-2">
+              Mark all read
+            </Button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+          {stats.map((s) => (
+            <div
+              key={s.label}
+              className="rounded-[10px] border border-b-border-subtle bg-b-paper p-4 min-h-[90px]"
+            >
+              <p
+                className={`mono-label ${
+                  s.tone === "accent"
+                    ? "text-b-accent-text"
+                    : s.tone === "success"
+                    ? "text-b-success"
+                    : s.tone === "warning"
+                    ? "text-b-warning"
+                    : "text-b-text-tertiary"
+                }`}
+              >
+                {s.label}
+              </p>
+              <p className="display-s mt-1 text-[32px] leading-[40px]">{s.value}</p>
+              <p className="body-sm text-b-text-tertiary mt-1">{s.sub}</p>
