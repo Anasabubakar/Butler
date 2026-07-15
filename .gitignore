@@ -6,10 +6,12 @@ frontend/.next/
 frontend/out/
 backend/butler
 
-# Environment
+# Environment (never commit secrets)
 .env
 .env.local
 .env.*.local
+backend/.env
+frontend/.env.local
 
 # Firebase config (SECURITY: never commit API keys)
 firebase-applet-config.json
