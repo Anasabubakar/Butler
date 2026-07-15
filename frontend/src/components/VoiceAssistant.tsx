@@ -91,3 +91,49 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
           if (ws.readyState !== WebSocket.OPEN) return;
           const pcm = e.inputBuffer.getChannelData(0);
           const int16 = new Int16Array(pcm.length);
+          for (let i = 0; i < pcm.length; i++) {
+            int16[i] = Math.max(-32768, Math.min(32767, pcm[i] * 32768));
+          }
+          // Server expects JSON with base64 PCM when possible; raw buffer as fallback
+          const bytes = new Uint8Array(int16.buffer);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          ws.send(JSON.stringify({ audio: btoa(binary) }));
+        };
+      };
+
+      ws.onmessage = async (event) => {
+        if (typeof event.data === "string") {
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === "transcript" && msg.text) {
+              setTranscript((prev) => [...prev, msg.text]);
+            } else if (msg.text) {
+              setTranscript((prev) => [...prev, msg.text]);
+            } else if (msg.audio) {
+              setState("speaking");
+              // base64 audio from live bridge
+              const raw = atob(msg.audio);
+              const buf = new ArrayBuffer(raw.length);
+              const view = new Uint8Array(buf);
+              for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
+              try {
+                const audioBuffer = await audioCtx.decodeAudioData(buf.slice(0));
+                const bufferSource = audioCtx.createBufferSource();
+                bufferSource.buffer = audioBuffer;
+                bufferSource.connect(audioCtx.destination);
+                bufferSource.onended = () => setState("listening");
+                bufferSource.start();
+              } catch {
+                setState("listening");
+              }
+            } else if (msg.turn_complete || msg.type === "turn_complete") {
+              setState("listening");
+            }
+          } catch {
+            /* ignore parse errors */
+          }
+          return;
+        }
+
+        setState("speaking");
