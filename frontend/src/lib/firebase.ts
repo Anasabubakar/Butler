@@ -92,3 +92,26 @@ export async function reconnectGoogleWorkspace(): Promise<string | null> {
   const firebaseAuth = getFirebaseAuth();
   const user = firebaseAuth?.currentUser;
   if (!firebaseAuth || !user) return null;
+  const result = await reauthenticateWithPopup(user, buildProvider());
+  const credential = GoogleAuthProvider.credentialFromResult(result);
+  const accessToken = credential?.accessToken || null;
+  persistGoogleToken(accessToken);
+  return accessToken;
+}
+
+export function initAuth(
+  onUser: (user: User, idToken: string) => void,
+  onNoUser: () => void,
+  onAuthFailure: () => void
+) {
+  const firebaseAuth = getFirebaseAuth();
+  if (!firebaseAuth) {
+    onNoUser();
+    return;
+  }
+
+  return onAuthStateChanged(firebaseAuth, async (user) => {
+    if (!user) {
+      onNoUser();
+      return;
+    }
