@@ -57,3 +57,32 @@ func (h *ButlerHandler) Chat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	svcReq := service.ChatRequest{
+		ThreadID: req.ThreadID,
+		Text:     req.Text,
+		Mode:     req.Mode,
+		Lat:      req.Lat,
+		Lng:      req.Lng,
+	}
+
+	result, err := h.chatService.SendMessage(r.Context(), userID, svcReq)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, chatResponse{
+		Text:             result.Text,
+		Thinking:         result.ThinkingText,
+		GroundingSources: result.GroundingSources,
+		ThreadID:         result.ThreadID,
+		ModelUsed:        result.ModelUsed,
+	})
+}
+
+type transcribeRequest struct {
+	AudioBase64 string `json:"audioBase64"`
+	MIMEType    string `json:"mimeType"`
+}
+
+type transcribeResponse struct {
+	Text string `json:"text"`
