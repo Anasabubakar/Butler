@@ -21,3 +21,25 @@ func GetUserID(ctx context.Context) string {
 	}
 	return ""
 }
+
+type FirebaseAuth struct {
+	client *auth.Client
+}
+
+func NewFirebaseAuth(projectID string) (*FirebaseAuth, error) {
+	ctx := context.Background()
+
+	app, err := firebase.NewApp(ctx, &firebase.Config{
+		ProjectID: projectID,
+	}, option.WithoutAuthentication())
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := app.Auth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FirebaseAuth{client: client}, nil
+}
