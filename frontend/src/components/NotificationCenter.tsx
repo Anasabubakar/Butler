@@ -140,3 +140,38 @@ export default function NotificationCenter() {
               </p>
               <p className="display-s mt-1 text-[32px] leading-[40px]">{s.value}</p>
               <p className="body-sm text-b-text-tertiary mt-1">{s.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-6 mt-10 border-b border-b-border-subtle pb-3">
+          {tabs.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`pb-1 relative body-md-med transition-colors cursor-pointer ${
+                tab === key ? "text-b-text-primary" : "text-b-text-tertiary hover:text-b-text-secondary"
+              }`}
+            >
+              {label}
+              {tab === key && (
+                <span className="absolute left-0 right-0 -bottom-3 h-0.5 bg-b-accent" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-8 space-y-3">
+          {error && (
+            <p className="body-sm text-b-danger" role="alert">
+              {error}
+            </p>
+          )}
+          {loading ? (
+            <p className="body-sm text-b-text-tertiary animate-pulse">Loading…</p>
+          ) : visible.length === 0 ? (
+            <div className="rounded-[10px] border border-b-border-subtle bg-b-paper p-10 text-center">
+              <p className="type-h4 text-b-text-primary">All clear, Boss.</p>
+              <p className="body-sm text-b-text-secondary mt-2">
+                No notifications in this view. Connect services or wait for Butler to surface work.
