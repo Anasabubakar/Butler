@@ -178,3 +178,48 @@ export default function ChatInterface() {
             <p className="body-sm text-b-text-tertiary px-2 py-3 animate-pulse">Loading conversations…</p>
           )}
           {!loadingThreads && threads.length === 0 && (
+            <p className="body-sm text-b-text-tertiary px-2 py-3">
+              No conversations yet. Start one — Butler will keep the history.
+            </p>
+          )}
+          {threads.map((t) => {
+            const isActive = activeThreadId === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => selectThread(t.id)}
+                className={`w-full text-left rounded-[10px] px-4 py-3 transition-colors cursor-pointer ${
+                  isActive
+                    ? "bg-b-paper border border-b-border-subtle"
+                    : "hover:bg-b-paper/50"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="body-md-med text-b-text-primary truncate">{t.title || "Untitled"}</p>
+                  <span className="mono-sm text-b-text-tertiary shrink-0">
+                    {formatRelative(t.lastMessageAt || t.updatedAt)}
+                  </span>
+                </div>
+                {t.subtitle && (
+                  <p className="body-sm text-b-text-tertiary mt-0.5 truncate">{t.subtitle}</p>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="h-[72px] shrink-0 flex items-center justify-between px-10 border-b border-b-border-subtle">
+          <div>
+            <h1 className="body-md-med text-b-text-primary">
+              {activeThreadId === "new" ? "New conversation" : activeThread?.title || "Conversation"}
+            </h1>
+            <p className="mono-sm text-b-text-tertiary mt-0.5">with Butler · your chief of staff</p>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-b-paper border border-b-border-subtle">
+            <span className="text-b-accent text-[10px]" aria-hidden>
+              ●
+            </span>
+            <span className="mono-label text-b-text-secondary">{MODE_LABELS[mode]}</span>
