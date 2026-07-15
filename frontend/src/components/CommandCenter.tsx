@@ -97,3 +97,53 @@ export default function CommandCenter({
             : needsCount > 0
             ? `${needsCount} thing${needsCount === 1 ? "" : "s"} need you today. I've held the rest.`
             : "Your day looks calm. I'm watching the inbox and calendar."}
+          {isLoading && (
+            <span className="ml-2 mono-label text-b-accent-text">syncing…</span>
+          )}
+        </p>
+        {!hasWorkspace && (
+          <div className="mt-4">
+            <Button variant="accent" size="md" onClick={onReconnectWorkspace}>
+              Connect Google Workspace
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="px-8 pb-10">
+        <div className="grid grid-cols-12 gap-5">
+          <Card
+            tone="ink"
+            bordered={false}
+            className="col-span-12 xl:col-span-7 p-6 flex flex-col justify-between min-h-[300px]"
+          >
+            <div>
+              <div className="mono-label mb-3 text-b-accent-text">
+                The Brief · {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </div>
+              <h2 className="type-h2 mb-3 text-b-text-inverse">
+                {needsCount > 0
+                  ? "Here's what matters before your next move."
+                  : "Quiet morning — nothing urgent on the desk."}
+              </h2>
+              <div className="body-md whitespace-pre-line text-b-text-tertiary">
+                {briefFromData(emails, tasks, events, awaiting)}
+              </div>
+            </div>
+            <div className="flex items-center gap-4 mt-6 flex-wrap">
+              {awaiting.length > 0 ? (
+                <Button variant="accent" size="md" onClick={onOpenDelegation}>
+                  Review {awaiting.length} approval{awaiting.length === 1 ? "" : "s"}
+                </Button>
+              ) : (
+                <Button variant="accent" size="md" onClick={onOpenChat}>
+                  Talk to Butler
+                </Button>
+              )}
+              <button
+                type="button"
+                onClick={onOpenNotifications}
+                className="body-sm-med text-b-text-tertiary"
+              >
+                Open notifications desk
+              </button>
