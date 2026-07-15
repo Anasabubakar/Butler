@@ -444,3 +444,52 @@ function briefFromData(
 function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
+
+function formatAgo(iso: string | undefined) {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const diff = Date.now() - t;
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor(diff / 3600000);
+  if (d >= 7) return `${Math.floor(d / 7)}w ago`;
+  if (d >= 1) return `${d}d ago`;
+  if (h >= 1) return `${h}h ago`;
+  return "just now";
+}
+
+function formatEventTime(start: string) {
+  if (!start) return "—";
+  // All-day dates are YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(start)) return "all day";
+  const d = new Date(start);
+  if (Number.isNaN(d.getTime())) return start.slice(11, 16) || start;
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatNextEvent(events: CalendarEvent[]) {
+  if (!events.length) return "Nothing scheduled — I'm keeping the room clear.";
+  const e = events[0];
+  return `${formatEventTime(e.start)} → ${e.summary}\n${
+    e.location ? "at " + e.location : "held for you."
+  }`;
+}
+
+function estimateDeepWork(events: CalendarEvent[]) {
+  // Rough: workday 9–17 minus event hours today.
+  const workMinutes = 8 * 60;
+  let busy = 0;
+  for (const e of events) {
+    const s = new Date(e.start).getTime();
+    const end = new Date(e.end).getTime();
+    if (!Number.isNaN(s) && !Number.isNaN(end) && end > s) {
+      busy += Math.min((end - s) / 60000, workMinutes);
+    }
+  }
+  const free = Math.max(0, workMinutes - busy);
+  const hours = Math.floor(free / 60);
+  const mins = Math.round(free % 60);
+  const label = free <= 0 ? "0h" : mins === 0 ? `${hours}h` : `${hours}h ${mins}m`;
+  const pct = Math.round((free / workMinutes) * 100);
+  return { label, pct: Math.min(100, Math.max(8, pct)) };
+}
