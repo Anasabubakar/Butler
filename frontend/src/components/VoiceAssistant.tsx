@@ -321,3 +321,49 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
             ))}
           </div>
 
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-10">
+            <button
+              type="button"
+              onClick={togglePause}
+              className="px-5 py-3.5 rounded-full border border-b-border-strong body-md-med hover:bg-white/5 transition-colors cursor-pointer"
+            >
+              {state === "paused" || state === "idle" || state === "error"
+                ? "Start listening"
+                : "Pause listening"}
+            </button>
+            <button
+              type="button"
+              onClick={sendTranscriptToChat}
+              disabled={transcript.length === 0}
+              className="px-5 py-3.5 rounded-full bg-b-accent text-b-text-on-accent body-md-med hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Send transcript
+            </button>
+            <Link
+              href="/dashboard/chat"
+              className="px-5 py-3.5 rounded-full border border-b-border-strong body-md-med hover:bg-white/5 transition-colors"
+            >
+              Switch to chat
+            </Link>
+          </div>
+        </div>
+
+        <aside className="hidden xl:block w-56 shrink-0 px-6 pt-8">
+          <p className="mono-label text-b-text-tertiary mb-4">SAY TO BUTLER</p>
+          <div className="flex flex-col gap-2">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => applySuggestion(s)}
+                className="inline-flex px-3 py-2 rounded-full border border-b-border-strong body-sm text-b-text-tertiary text-left hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                “{s}”
+              </button>
+            ))}
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
