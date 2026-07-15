@@ -95,3 +95,27 @@ export const api = {
 
     create: (data: {
       title: string;
+      service: string;
+      context: string;
+      draft?: string;
+      tone?: string;
+      toneLabel?: string;
+    }) =>
+      request<Delegation>("/api/delegations", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    approve: (id: string) =>
+      request<Delegation>(`/api/delegations/${id}/approve`, { method: "POST" }),
+
+    reject: (id: string) =>
+      request<Delegation>(`/api/delegations/${id}/reject`, { method: "POST" }),
+  },
+
+  notifications: {
+    list: (source?: string) =>
+      requestArray<Notification>(
+        `/api/notifications${source ? `?source=${source}` : ""}`
+      ),
+
