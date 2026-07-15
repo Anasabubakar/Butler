@@ -263,7 +263,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       </section>
 
       {/* ──── Philosophy ──── */}
-      <section className="px-6 py-20 md:py-28 bg-b-sunken">
+      <section id="philosophy" className="px-6 py-20 md:py-28 bg-b-sunken">
         <div className="max-w-4xl mx-auto text-center">
           <h2>
             <span className="display-s md:display-l block">
@@ -361,7 +361,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       </section>
 
       {/* ──── Testimonial ──── */}
-      <section className="px-6 py-16 md:py-20 bg-b-ink">
+      <section id="testimonial" className="px-6 py-16 md:py-20 bg-b-ink">
         <div className="max-w-3xl mx-auto text-center">
           <p
             className="display-s text-b-text-inverse opacity-90"
