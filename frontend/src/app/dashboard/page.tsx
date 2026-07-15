@@ -159,3 +159,35 @@ export default function DashboardHome() {
       setDelegations(delData);
     } catch {
       // API may be offline; keep previous or empty
+    }
+
+    setIsLoading(false);
+  }, [getGoogleAccessToken]);
+
+  useEffect(() => {
+    fetchWorkspaceData();
+  }, [fetchWorkspaceData, hasWorkspace]);
+
+  return (
+    <CommandCenter
+      user={user}
+      events={events}
+      tasks={tasks}
+      emails={emails}
+      notes={notes}
+      delegations={delegations}
+      isLoading={isLoading}
+      hasWorkspace={hasWorkspace}
+      onRefresh={fetchWorkspaceData}
+      onReconnectWorkspace={async () => {
+        await reconnectWorkspace();
+        fetchWorkspaceData();
+      }}
+      onOpenChat={() => router.push("/dashboard/chat")}
+      onOpenDelegation={() => router.push("/dashboard/delegation")}
+      onOpenNotifications={() => router.push("/dashboard/notifications")}
+      onOpenNotes={() => router.push("/dashboard/notes")}
+      onOpenIntegrations={() => router.push("/dashboard/integrations")}
+    />
+  );
+}
