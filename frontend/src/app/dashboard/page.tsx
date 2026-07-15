@@ -51,6 +51,14 @@ export default function DashboardHome() {
     const token = getGoogleAccessToken();
 
     if (token) {
+      // Vault Google token server-side for connector SDK (non-blocking).
+      void api.integrations
+        .registerGoogle({
+          accessToken: token,
+          email: user?.email || undefined,
+        })
+        .catch(() => undefined);
+
       try {
         const headers = { Authorization: `Bearer ${token}` };
 
@@ -162,7 +170,7 @@ export default function DashboardHome() {
     }
 
     setIsLoading(false);
-  }, [getGoogleAccessToken]);
+  }, [getGoogleAccessToken, user?.email]);
 
   useEffect(() => {
     fetchWorkspaceData();

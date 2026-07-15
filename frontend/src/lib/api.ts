@@ -142,4 +142,67 @@ export const api = {
     messages: (threadId: string) =>
       requestArray<Message>(`/api/butler/threads/${threadId}/messages`),
   },
+
+  integrations: {
+    list: () => requestArray<IntegrationCatalogItem>("/api/integrations"),
+
+    connect: (provider: string, redirectTo?: string) =>
+      request<ConnectResponse>(`/api/integrations/${provider}/connect`, {
+        method: "POST",
+        body: JSON.stringify({ redirectTo }),
+      }),
+
+    disconnect: (provider: string) =>
+      requestVoid(`/api/integrations/${provider}`, { method: "DELETE" }),
+
+    registerGoogle: (data: { accessToken: string; email?: string; scopes?: string }) =>
+      request<IntegrationConnection>("/api/integrations/google", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
 };
+
+export interface IntegrationCatalogItem {
+  id: string;
+  name: string;
+  role: string;
+  scopes: string;
+  group: string;
+  status: "connected" | "available" | "not_configured" | "coming_soon";
+  accountLabel?: string;
+  connectedAt?: string;
+  lastSyncedAt?: string;
+  authType: string;
+  configured: boolean;
+}
+
+export interface ConnectResponse {
+  provider: string;
+  authUrl?: string;
+  mode: "redirect" | "client" | "disabled";
+  message?: string;
+}
+
+export interface IntegrationConnection {
+  id: string;
+  provider: string;
+  accountLabel: string;
+  status: string;
+}
+
+async function requestVoid(path: string, options: RequestInit = {}): Promise<void> {
+  const token = await getIdToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(error || res.statusText);
+  }
+}
