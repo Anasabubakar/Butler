@@ -36,3 +36,22 @@ func (h *WSHandler) Live(w http.ResponseWriter, r *http.Request) {
 	if token == "" {
 		http.Error(w, `{"error":"missing token"}`, http.StatusUnauthorized)
 		return
+	}
+
+	if _, err := h.auth.VerifyToken(r.Context(), token); err != nil {
+		log.Warn().Err(err).Msg("ws: invalid token")
+		http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
+		return
+	}
+
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  4096,
+		WriteBufferSize: 4096,
+		CheckOrigin: func(req *http.Request) bool {
+			origin := req.Header.Get("Origin")
+			if origin == "" {
+				return true
+			}
+			for _, o := range h.origins {
+				if strings.TrimSpace(o) == origin || strings.TrimSpace(o) == "*" {
+					return true
