@@ -95,3 +95,35 @@ export default function DashboardHome() {
               description: e.description,
               location: e.location,
             }))
+          );
+        } else {
+          setEvents([]);
+        }
+
+        if (taskRes.status === "fulfilled" && taskRes.value.ok) {
+          const data = await taskRes.value.json();
+          setTasks(
+            ((data.items || []) as GoogleTask[]).map((t) => ({
+              id: t.id,
+              title: t.title || "(Untitled)",
+              due: t.due,
+              status: t.status === "completed" ? ("completed" as const) : ("needsAction" as const),
+            }))
+          );
+        } else {
+          setTasks([]);
+        }
+
+        if (gmailRes.status === "fulfilled" && gmailRes.value.ok) {
+          const data = await gmailRes.value.json();
+          const ids = ((data.messages || []) as GoogleMessageRef[]).slice(0, 5);
+          const details: GoogleMessageDetail[] = await Promise.all(
+            ids.map((m) =>
+              fetch(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From`,
+                { headers }
+              ).then((r) => r.json())
+            )
+          );
+          setEmails(
+            details.map((d) => {
