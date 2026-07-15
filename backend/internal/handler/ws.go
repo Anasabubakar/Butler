@@ -17,3 +17,22 @@ type WSHandler struct {
 }
 
 func NewWSHandler(liveBridge *gemini.LiveBridge, auth *middleware.FirebaseAuth, corsOrigins []string) *WSHandler {
+	return &WSHandler{
+		liveBridge: liveBridge,
+		auth:       auth,
+		origins:    corsOrigins,
+	}
+}
+
+func (h *WSHandler) Live(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		authHeader := r.Header.Get("Authorization")
+		token = strings.TrimPrefix(authHeader, "Bearer ")
+		if token == authHeader {
+			token = ""
+		}
+	}
+	if token == "" {
+		http.Error(w, `{"error":"missing token"}`, http.StatusUnauthorized)
+		return
