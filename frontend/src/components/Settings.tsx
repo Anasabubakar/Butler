@@ -190,3 +190,51 @@ export default function Settings({
                   onChange={setFormality}
                   low="Casual"
                   high="Formal"
+                />
+                <SliderRow
+                  label="Brevity"
+                  value={brevity}
+                  onChange={setBrevity}
+                  low="Verbose"
+                  high="Terse"
+                />
+                <div className="flex justify-end">
+                  <Button variant="accent" size="sm" onClick={() => save()} disabled={saving}>
+                    {saving ? "Saving…" : "Save voice"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+
+          <Card tone="paper" className="p-6">
+            <div className="mono-label mb-1 text-b-accent-text">Default chat mode</div>
+            <div className="body-sm mb-4 text-b-text-tertiary">
+              Preferred model path when you open a new conversation.
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {["general", "low-latency", "thinking", "search", "maps"].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    setChatMode(m);
+                    save({ chatMode: m });
+                  }}
+                  className={`px-3 py-2 rounded-full mono-label cursor-pointer transition-colors ${
+                    chatMode === m
+                      ? "bg-b-ink text-b-text-inverse"
+                      : "border border-b-border-default text-b-text-secondary"
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          </Card>
+
+          <Card tone="paper" className="p-6">
+            <div className="mono-label mb-1 text-b-accent-text">AI routing</div>
+            <div className="body-sm mb-6 text-b-text-tertiary">
+              Models Butler uses today. Routing is handled server-side via Gemini.
+            </div>
