@@ -73,3 +73,41 @@ export default function TaskDelegation() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
+    title: "",
+    service: "Gmail",
+    context: "",
+    draft: "",
+  });
+
+  const fetchItems = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const status = filter === "all" ? undefined : filter;
+      const data = await api.delegations.list(status);
+      setItems(data);
+    } catch (err) {
+      setItems([]);
+      setError(err instanceof Error ? err.message : "Failed to load delegations");
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  const handleApprove = async (id: string) => {
+    setBusyId(id);
+    try {
+      await api.delegations.approve(id);
+      await fetchItems();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Approve failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
