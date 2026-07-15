@@ -82,3 +82,24 @@ export default function Sidebar({ active, onSelect, badges }: SidebarProps) {
               </span>
               {liveBadge && (
                 <span
+                  className={`mono-label px-1.5 py-0.5 rounded-[6px] shrink-0 ${
+                    isActive
+                      ? "bg-b-accent-soft text-b-accent-text"
+                      : "bg-b-paper text-b-text-tertiary"
+                  }`}
+                >
+                  {liveBadge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="px-5 py-4 border-t border-b-border-subtle/60 flex items-center gap-3">
+        {user?.photoURL ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.photoURL}
+            alt=""
+            className="w-9 h-9 rounded-full object-cover"
