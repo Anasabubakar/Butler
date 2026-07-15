@@ -47,3 +47,27 @@ export const api = {
       }>("/api/butler/chat", { method: "POST", body: JSON.stringify(data) }),
 
     transcribe: (data: { audioBase64: string; mimeType: string }) =>
+      request<{ text: string }>("/api/butler/transcribe", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    analyze: (data: {
+      fileBase64: string;
+      mimeType: string;
+      prompt?: string;
+    }) =>
+      request<{ text: string }>("/api/butler/analyze", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
+  notes: {
+    list: () => requestArray<Note>("/api/notes"),
+
+    create: (data: {
+      title: string;
+      content: string;
+      color?: string;
+      tag?: string;
