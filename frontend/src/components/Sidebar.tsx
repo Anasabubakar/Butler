@@ -61,3 +61,24 @@ export default function Sidebar({ active, onSelect, badges }: SidebarProps) {
             <button
               key={key}
               type="button"
+              onClick={() => onSelect(key)}
+              aria-current={isActive ? "page" : undefined}
+              className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-[10px] text-left transition-all duration-200 cursor-pointer
+                ${isActive ? "bg-b-paper" : "hover:bg-b-paper/60"}`}
+            >
+              <span className="flex items-center gap-3 min-w-0">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    isActive ? "bg-b-accent" : "bg-b-text-tertiary"
+                  }`}
+                />
+                <span
+                  className={`body-md-med truncate ${
+                    isActive ? "text-b-text-primary" : "text-b-text-secondary"
+                  }`}
+                >
+                  {label}
+                </span>
+              </span>
+              {liveBadge && (
+                <span
