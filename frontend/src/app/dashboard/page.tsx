@@ -127,3 +127,35 @@ export default function DashboardHome() {
           );
           setEmails(
             details.map((d) => {
+              const subjectHeader = d.payload?.headers?.find((h) => h.name === "Subject");
+              const fromHeader = d.payload?.headers?.find((h) => h.name === "From");
+              return {
+                id: d.id,
+                subject: subjectHeader?.value || "(No subject)",
+                from: fromHeader?.value?.replace(/<.*>/, "").trim() || "",
+                snippet: d.snippet || "",
+                date: new Date(parseInt(d.internalDate || "0", 10)).toISOString(),
+              };
+            })
+          );
+        } else {
+          setEmails([]);
+        }
+      } catch (err) {
+        console.error("Workspace data fetch error:", err);
+      }
+    } else {
+      setEvents([]);
+      setTasks([]);
+      setEmails([]);
+    }
+
+    try {
+      const [notesData, delData] = await Promise.all([
+        api.notes.list(),
+        api.delegations.list(),
+      ]);
+      setNotes(notesData);
+      setDelegations(delData);
+    } catch {
+      // API may be offline; keep previous or empty
