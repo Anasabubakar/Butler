@@ -81,3 +81,30 @@ export interface Notification {
   title: string;
   body: string;
   time?: string;
+  createdAt?: string;
+  read: boolean;
+  tone?: "accent" | "success" | "warning" | "danger" | "neutral" | "info";
+}
+
+export interface UserSettings {
+  userId?: string;
+  theme?: string;
+  chatMode?: string;
+  timezone?: string;
+  warmth: number;
+  formality: number;
+  brevity: number;
+  locationAutoDetect: boolean;
+  locationText: string;
+}
+
+export interface ChatThread {
+  id: string;
+  title: string;
+  subtitle?: string;
+  tag?: string;
+  tone?: string;
+  lastMessageAt?: string;
+  updatedAt?: string;
+  createdAt?: string;
+}
