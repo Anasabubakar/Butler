@@ -28,3 +28,33 @@ func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 
+	cfg := config.Load()
+
+	if cfg.GeminiAPIKey == "" {
+		log.Fatal().Msg("GEMINI_API_KEY is required")
+	}
+	if cfg.FirebaseProject == "" {
+		log.Fatal().Msg("FIREBASE_PROJECT_ID is required")
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to connect to database")
+	}
+	defer pool.Close()
+
+	if err := pool.Ping(ctx); err != nil {
+		log.Fatal().Err(err).Msg("failed to ping database")
+	}
+	log.Info().Msg("connected to PostgreSQL")
+
+	if err := runMigrations(ctx, pool, cfg.MigrationsPath); err != nil {
+		log.Fatal().Err(err).Msg("failed to run migrations")
+	}
+
+	firebaseAuth, err := middleware.NewFirebaseAuth(cfg.FirebaseProject)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialize Firebase Auth")
