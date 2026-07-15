@@ -94,3 +94,51 @@ export default function Settings({
 
   const handleReconnect = async () => {
     setReconnecting(true);
+    try {
+      await onReconnectWorkspace();
+    } finally {
+      setReconnecting(false);
+    }
+  };
+
+  return (
+    <div className="w-full h-full overflow-y-auto bg-b-canvas">
+      <div className="px-14 pt-14 pb-14 max-w-[900px]">
+        <h1 className="display-s text-b-text-primary">Settings</h1>
+        <p className="body-lg mt-4 text-b-text-secondary">
+          Your profile, Butler&apos;s voice, AI routing, and location preferences.
+        </p>
+
+        {error && (
+          <p className="body-sm text-b-danger mt-4" role="alert">
+            {error}
+          </p>
+        )}
+        {savedAt && !error && (
+          <p className="mono-sm text-b-success mt-4">Saved · {savedAt}</p>
+        )}
+
+        <div className="flex flex-col gap-8 mt-10">
+          <Card tone="paper" className="p-6">
+            <div className="mono-label mb-4 text-b-accent-text">Profile</div>
+            <div className="flex items-center gap-5 flex-wrap">
+              {user?.photoURL ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.photoURL}
+                  alt=""
+                  className="w-14 h-14 rounded-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-full flex items-center justify-center bg-b-accent-soft">
+                  <span className="type-h3 text-b-accent-text">
+                    {(user?.displayName?.[0] || "B").toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="type-h4 text-b-text-primary">
+                  {user?.displayName || "Boss"}
+                </div>
+                <div className="body-sm mt-1 text-b-text-tertiary">
