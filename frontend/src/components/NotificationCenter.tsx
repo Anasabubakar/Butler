@@ -69,3 +69,38 @@ export default function NotificationCenter() {
 
   const stats = [
     {
+      label: "NEEDS YOU",
+      value: String(unread.length),
+      sub: "unread decisions",
+      tone: "accent" as const,
+    },
+    {
+      label: "TOTAL",
+      value: String(items.length),
+      sub: "in your desk",
+      tone: "neutral" as const,
+    },
+    {
+      label: "READ",
+      value: String(read.length),
+      sub: "already handled",
+      tone: "success" as const,
+    },
+    {
+      label: "SOURCES",
+      value: String(new Set(items.map((n) => n.source || "butler")).size),
+      sub: "active channels",
+      tone: "warning" as const,
+    },
+  ];
+
+  const tabs: Array<{ key: TabKey; label: string }> = [
+    { key: "unread", label: `Needs you · ${unread.length}` },
+    { key: "read", label: `Read · ${read.length}` },
+    { key: "all", label: `All · ${items.length}` },
+  ];
+
+  return (
+    <div className="h-full overflow-y-auto bg-b-canvas">
+      <div className="px-14 pt-14 pb-14 max-w-[1400px]">
+        <div className="flex items-start justify-between gap-4">
