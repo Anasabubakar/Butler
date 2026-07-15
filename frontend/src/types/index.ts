@@ -53,3 +53,31 @@ export interface CalendarEvent {
   location?: string;
   note?: string;
 }
+
+export interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime: string;
+  webViewLink?: string;
+}
+
+export type ChatMode = "general" | "low-latency" | "thinking" | "search" | "maps";
+
+export interface Delegation {
+  id: string;
+  service: string;
+  context: string;
+  title: string;
+  draft: string;
+  tone: "accent" | "success" | "warning" | "neutral";
+  toneLabel: string;
+  status: "awaiting" | "approved" | "rejected" | "in_flight";
+}
+
+export interface Notification {
+  id: string;
+  source: string;
+  title: string;
+  body: string;
+  time?: string;
