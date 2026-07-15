@@ -46,3 +46,51 @@ export default function Settings({
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const s = await api.settings.get();
+      setWarmth(s.warmth ?? 72);
+      setFormality(s.formality ?? 55);
+      setBrevity(s.brevity ?? 80);
+      setLocationAuto(s.locationAutoDetect ?? true);
+      setLocationText(s.locationText ?? "");
+      setChatMode(s.chatMode ?? "general");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load settings");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const save = async (partial?: Partial<UserSettings>) => {
+    setSaving(true);
+    setError(null);
+    try {
+      const payload: Partial<UserSettings> = {
+        warmth,
+        formality,
+        brevity,
+        locationAutoDetect: locationAuto,
+        locationText,
+        chatMode,
+        ...partial,
+      };
+      await api.settings.update(payload);
+      setSavedAt(new Date().toLocaleTimeString());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReconnect = async () => {
+    setReconnecting(true);
