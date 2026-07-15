@@ -163,3 +163,35 @@ func (s *ChatService) Transcribe(ctx context.Context, audioBase64 string, mimeTy
 }
 
 // Analyze processes a file with an optional prompt.
+func (s *ChatService) Analyze(ctx context.Context, fileBase64 string, mimeType string, prompt string) (string, error) {
+	text, err := s.geminiClient.Analyze(ctx, fileBase64, mimeType, prompt)
+	if err != nil {
+		return "", fmt.Errorf("chat: analyze: %w", err)
+	}
+	return text, nil
+}
+
+// GetThreads returns all chat threads for a user.
+func (s *ChatService) GetThreads(ctx context.Context, userID string) ([]*model.ChatThread, error) {
+	threads, err := s.chatRepo.GetThreadsByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("chat: get threads: %w", err)
+	}
+	return threads, nil
+}
+
+// GetMessages returns all messages in a thread after verifying ownership.
+func (s *ChatService) GetMessages(ctx context.Context, userID, threadID string) ([]*model.ChatMessage, error) {
+	thread, err := s.chatRepo.GetThread(ctx, threadID)
+	if err != nil {
+		return nil, fmt.Errorf("chat: thread not found: %w", err)
+	}
+	if thread.UserID != userID {
+		return nil, fmt.Errorf("chat: permission denied")
+	}
+	msgs, err := s.chatRepo.GetMessagesByThread(ctx, threadID)
+	if err != nil {
+		return nil, fmt.Errorf("chat: get messages: %w", err)
+	}
+	return msgs, nil
+}
