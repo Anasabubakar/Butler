@@ -103,3 +103,24 @@ export default function Sidebar({ active, onSelect, badges }: SidebarProps) {
             src={user.photoURL}
             alt=""
             className="w-9 h-9 rounded-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-b-accent-soft flex items-center justify-center">
+            <span className="body-sm-med text-b-accent-text">
+              {(user?.displayName?.[0] || "B").toUpperCase()}
+            </span>
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="body-md-med truncate">
+            {user?.displayName?.split(" ")[0] || "Boss"}
+          </p>
+          <p className="mono-label text-b-text-tertiary mt-0.5 truncate">
+            {hasWorkspace ? "workspace · live" : "workspace · offline"}
+          </p>
+        </div>
+      </div>
+    </aside>
+  );
+}
