@@ -175,3 +175,38 @@ export default function NotificationCenter() {
               <p className="type-h4 text-b-text-primary">All clear, Boss.</p>
               <p className="body-sm text-b-text-secondary mt-2">
                 No notifications in this view. Connect services or wait for Butler to surface work.
+              </p>
+            </div>
+          ) : (
+            visible.map((n) => (
+              <div
+                key={n.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => !n.read && handleMarkRead(n.id)}
+                onKeyDown={(e) => e.key === "Enter" && !n.read && handleMarkRead(n.id)}
+                className={`relative rounded-[10px] border border-b-border-subtle bg-b-paper min-h-[80px] flex items-center px-6 gap-6 cursor-pointer transition-opacity ${
+                  n.read ? "opacity-60" : "hover:border-b-border-default"
+                }`}
+              >
+                {!n.read && (
+                  <span className="absolute left-0 top-0 bottom-0 w-1 rounded-l-[10px] bg-b-accent" />
+                )}
+                <div className="flex-1 min-w-0 py-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    {n.source && (
+                      <span className="mono-label text-b-text-tertiary">{n.source.toUpperCase()}</span>
+                    )}
+                  </div>
+                  <p className="body-md-med text-b-text-primary">{n.title}</p>
+                  <p className="body-sm text-b-text-secondary mt-1 line-clamp-2">{n.body}</p>
+                </div>
+                <span className="mono-sm text-b-text-tertiary shrink-0">{formatTime(n)}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
