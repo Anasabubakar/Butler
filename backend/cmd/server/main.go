@@ -147,3 +147,32 @@ func runMigrations(ctx context.Context, pool *pgxpool.Pool, dir string) error {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			return err
+		}
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
+				files = append(files, filepath.Join(dir, e.Name()))
+			}
+		}
+		sort.Strings(files)
+	} else {
+		files = []string{dir}
+	}
+
+	if len(files) == 0 {
+		log.Warn().Str("dir", dir).Msg("no migration files found")
+		return nil
+	}
+
+	for _, f := range files {
+		sqlBytes, err := os.ReadFile(f)
+		if err != nil {
+			return fmt.Errorf("read migration %s: %w", f, err)
+		}
+		if _, err := pool.Exec(ctx, string(sqlBytes)); err != nil {
+			// CREATE IF NOT EXISTS style migrations should be idempotent; still surface real failures.
+			return fmt.Errorf("apply migration %s: %w", f, err)
+		}
+		log.Info().Str("file", f).Msg("migration applied")
+	}
+	return nil
+}
