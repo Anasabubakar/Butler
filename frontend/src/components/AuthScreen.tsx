@@ -43,7 +43,7 @@ export default function AuthScreen({
         <div className="max-w-[520px] w-full flex flex-col gap-10">
           <motion.div variants={fadeUp} className="flex items-center gap-3">
             <ButlerLogo size={32} variant="dark" />
-            <span className="h-3 text-b-text-primary">Butler</span>
+            <span className="type-h3 text-b-text-primary">Butler</span>
           </motion.div>
 
           <motion.p variants={fadeUp} className="label-sm text-b-accent-text tracking-[0.12em]">

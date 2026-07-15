@@ -54,7 +54,7 @@ export default function Sidebar({ active, onSelect }: SidebarProps) {
       <div className="flex items-center gap-3 px-6 py-7 border-b border-b-border-subtle/60">
         <ButlerLogo size={32} variant="dark" />
         <div className="min-w-0">
-          <p className="h-3 truncate">Butler</p>
+          <p className="type-h3 truncate">Butler</p>
           <p className="mono-label text-b-text-tertiary mt-0.5">chief of staff</p>
         </div>
       </div>

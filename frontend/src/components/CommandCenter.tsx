@@ -94,7 +94,7 @@ export default function CommandCenter({
               <div className="mono-label mb-3" style={{ color: "var(--color-b-accent-text)" }}>
                 The Brief  ·  {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
-              <h2 className="h-2 mb-3" style={{ color: "var(--color-b-text-inverse)" }}>
+              <h2 className="type-h2 mb-3" style={{ color: "var(--color-b-text-inverse)" }}>
                 Three quiet moves before your first meeting.
               </h2>
               <div className="body-md whitespace-pre-line" style={{ color: "var(--color-b-text-tertiary)" }}>
@@ -117,7 +117,7 @@ export default function CommandCenter({
           <Card tone="raised" className="col-span-6 xl:col-span-2 p-5 min-h-[140px] flex flex-col justify-between">
             <div>
               <div className="mono-label mb-2" style={{ color: "var(--color-b-text-tertiary)" }}>Deep work</div>
-              <div className="h-1" style={{ color: "var(--color-b-text-primary)" }}>4h 20m</div>
+              <div className="type-h1" style={{ color: "var(--color-b-text-primary)" }}>4h 20m</div>
               <div className="body-sm mt-1" style={{ color: "var(--color-b-text-secondary)" }}>held</div>
             </div>
             <div className="h-1.5 rounded-full mt-4" style={{ background: "var(--color-b-sunken)" }}>
@@ -128,7 +128,7 @@ export default function CommandCenter({
           {/* LOCATION — cols 10-12 */}
           <Card tone="raised" className="col-span-6 xl:col-span-3 p-5 min-h-[140px]">
             <div className="mono-label mb-2" style={{ color: "var(--color-b-text-tertiary)" }}>You are here</div>
-            <div className="h-4" style={{ color: "var(--color-b-text-primary)" }}>Shoreditch, London</div>
+            <div className="type-h4" style={{ color: "var(--color-b-text-primary)" }}>Shoreditch, London</div>
             <div className="body-sm mt-2 whitespace-pre-line" style={{ color: "var(--color-b-text-secondary)" }}>
               {formatNextEvent(events)}
             </div>
@@ -137,7 +137,7 @@ export default function CommandCenter({
           {/* WEATHER — cols 8-9 */}
           <Card tone="raised" className="col-span-6 xl:col-span-2 p-5 min-h-[140px]">
             <div className="mono-label mb-2" style={{ color: "var(--color-b-text-tertiary)" }}>47°F · Clear</div>
-            <div className="h-4" style={{ color: "var(--color-b-text-primary)" }}>Cool afternoon</div>
+            <div className="type-h4" style={{ color: "var(--color-b-text-primary)" }}>Cool afternoon</div>
             <div className="body-sm mt-2" style={{ color: "var(--color-b-text-secondary)" }}>
               A light jacket for the walk.
             </div>
@@ -156,7 +156,7 @@ export default function CommandCenter({
           {/* AGENDA — cols 1-5 */}
           <Card tone="raised" className="col-span-12 xl:col-span-5 p-6 min-h-[320px]">
             <div className="mono-label mb-2" style={{ color: "var(--color-b-text-tertiary)" }}>Agenda · {now.toLocaleDateString([], { weekday: "short" })}</div>
-            <h3 className="h-3 mb-4" style={{ color: "var(--color-b-text-primary)" }}>Held for you.</h3>
+            <h3 className="type-h3 mb-4" style={{ color: "var(--color-b-text-primary)" }}>Held for you.</h3>
             <div className="flex flex-col gap-2.5">
               {(events.length ? events : DEMO_AGENDA).slice(0, 6).map((ev, i) => (
                 <div key={ev.id || i} className="grid grid-cols-[60px_1fr_auto] gap-3 items-baseline">
@@ -176,7 +176,7 @@ export default function CommandCenter({
           {/* INBOX — cols 6-8 */}
           <Card tone="raised" className="col-span-12 xl:col-span-3 p-6 min-h-[320px]">
             <div className="mono-label mb-2" style={{ color: "var(--color-b-accent-text)" }}>Inbox · {emails.length} urgent</div>
-            <h3 className="h-3 mb-4" style={{ color: "var(--color-b-text-primary)" }}>Drafts ready.</h3>
+            <h3 className="type-h3 mb-4" style={{ color: "var(--color-b-text-primary)" }}>Drafts ready.</h3>
             <div className="flex flex-col gap-2.5">
               {(emails.length ? emails : DEMO_MAILS).slice(0, 5).map((m, i) => (
                 <div key={m.id || i} className="flex items-start justify-between gap-3">
@@ -205,15 +205,15 @@ export default function CommandCenter({
           {/* DELEGATED — cols 9-12 */}
           <Card tone="raised" className="col-span-12 xl:col-span-4 p-6 min-h-[320px]">
             <div className="mono-label mb-2" style={{ color: "var(--color-b-text-tertiary)" }}>Delegated · 3 pending nod</div>
-            <h3 className="h-3 mb-4" style={{ color: "var(--color-b-text-primary)" }}>Awaiting you.</h3>
+            <h3 className="type-h3 mb-4" style={{ color: "var(--color-b-text-primary)" }}>Awaiting you.</h3>
             <div className="flex flex-col gap-4">
               {DEMO_DELEGATED.map((d) => (
                 <div key={d.title}>
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="mono-label" style={{ color: "var(--color-b-accent-text)" }}>{d.svc}</span>
-                    <span className="mono-label" style={{ color: "var(--color-b-text-tertiary)" }}>· {d.ctx}</span>
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-1">
+                    <span className="mono-label shrink-0" style={{ color: "var(--color-b-accent-text)" }}>{d.svc}</span>
+                    <span className="mono-label min-w-0" style={{ color: "var(--color-b-text-tertiary)" }}>· {d.ctx}</span>
                   </div>
-                  <div className="body-sm-med" style={{ color: "var(--color-b-text-primary)" }}>{d.title}</div>
+                  <div className="body-sm-med leading-snug" style={{ color: "var(--color-b-text-primary)" }}>{d.title}</div>
                   <div className="flex items-center gap-2 mt-2">
                     <Button size="sm" variant="primary" onClick={onOpenDelegation}>Approve</Button>
                     <Button size="sm" variant="secondary" onClick={onOpenDelegation}>Review</Button>
@@ -226,12 +226,12 @@ export default function CommandCenter({
           {/* RECENT NOTES — cols 1-4 */}
           <Card tone="raised" className="col-span-12 xl:col-span-4 p-6 min-h-[260px]">
             <div className="mono-label mb-2" style={{ color: "var(--color-b-text-tertiary)" }}>Memory · recent</div>
-            <h3 className="h-4 mb-4" style={{ color: "var(--color-b-text-primary)" }}>What Butler remembers.</h3>
+            <h3 className="type-h4 mb-4" style={{ color: "var(--color-b-text-primary)" }}>What Butler remembers.</h3>
             <div className="flex flex-col gap-2.5">
               {(notes.length ? notes : DEMO_NOTES).slice(0, 4).map((n, i) => (
-                <div key={n.id || i} className="flex items-start justify-between gap-3">
-                  <span className="body-sm flex-1" style={{ color: "var(--color-b-text-primary)" }}>· {notePreview(n)}</span>
-                  <span className="mono-sm flex-shrink-0" style={{ color: "var(--color-b-text-tertiary)" }}>{formatAgo(n.updatedAt)}</span>
+                <div key={n.id || i} className="flex items-start justify-between gap-3 min-w-0">
+                  <span className="body-sm flex-1 min-w-0 leading-snug" style={{ color: "var(--color-b-text-primary)" }}>· {notePreview(n)}</span>
+                  <span className="mono-sm shrink-0 pt-0.5" style={{ color: "var(--color-b-text-tertiary)" }}>{formatAgo(n.updatedAt)}</span>
                 </div>
               ))}
             </div>
@@ -247,7 +247,7 @@ export default function CommandCenter({
           {/* GITHUB — cols 5-8 */}
           <Card tone="raised" className="col-span-12 xl:col-span-4 p-6 min-h-[260px]">
             <div className="mono-label mb-2" style={{ color: "var(--color-b-text-tertiary)" }}>GitHub · last 8h</div>
-            <h3 className="h-4 mb-4" style={{ color: "var(--color-b-text-primary)" }}>The code moved.</h3>
+            <h3 className="type-h4 mb-4" style={{ color: "var(--color-b-text-primary)" }}>The code moved.</h3>
             <div className="flex flex-col gap-3">
               {GITHUB_EVENTS.map((e) => (
                 <div key={e.id} className="flex items-baseline gap-3">
@@ -269,7 +269,7 @@ export default function CommandCenter({
           {/* CONFLICTS — cols 9-12 */}
           <Card tone="raised" className="col-span-12 xl:col-span-4 p-6 min-h-[260px]">
             <div className="mono-label mb-2" style={{ color: "var(--color-b-warning)" }}>Conflicts · 2</div>
-            <h3 className="h-4 mb-4" style={{ color: "var(--color-b-text-primary)" }}>I already handled these.</h3>
+            <h3 className="type-h4 mb-4" style={{ color: "var(--color-b-text-primary)" }}>I already handled these.</h3>
             <div className="flex flex-col gap-4">
               {CONFLICTS.map((c) => (
                 <div key={c.title}>

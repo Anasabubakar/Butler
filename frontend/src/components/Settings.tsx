@@ -42,13 +42,13 @@ export default function Settings({ user, onSignOut }: SettingsProps) {
                   className="w-14 h-14 rounded-full flex items-center justify-center"
                   style={{ background: "var(--color-b-accent-soft)" }}
                 >
-                  <span className="h-3" style={{ color: "var(--color-b-accent-text)" }}>
+                  <span className="type-h3" style={{ color: "var(--color-b-accent-text)" }}>
                     {(user?.displayName?.[0] || "B").toUpperCase()}
                   </span>
                 </div>
               )}
               <div>
-                <div className="h-4" style={{ color: "var(--color-b-text-primary)" }}>
+                <div className="type-h4" style={{ color: "var(--color-b-text-primary)" }}>
                   {user?.displayName || "Boss"}
                 </div>
                 <div className="body-sm mt-1" style={{ color: "var(--color-b-text-tertiary)" }}>
@@ -134,7 +134,7 @@ export default function Settings({ user, onSignOut }: SettingsProps) {
 
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="h-4" style={{ color: "var(--color-b-text-primary)" }}>
+                <div className="type-h4" style={{ color: "var(--color-b-text-primary)" }}>
                   {locationAuto ? "Auto-detect" : "Manual"}
                 </div>
                 <div className="body-sm mt-1" style={{ color: "var(--color-b-text-tertiary)" }}>

@@ -90,7 +90,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <nav className="flex items-center justify-between px-8 lg:px-14 py-6 w-full">
         <div className="flex items-center gap-3">
           <ButlerLogo size={36} variant="dark" />
-          <span className="h-3">Butler</span>
+          <span className="type-h3">Butler</span>
         </div>
 
         <div className="hidden lg:flex items-center gap-9">
@@ -200,7 +200,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
           <div className="flex min-h-[420px]">
             <div className="w-[220px] border-r border-b-border-subtle p-5 hidden md:block bg-b-sunken">
-              <p className="h-3">Butler</p>
+              <p className="type-h3">Butler</p>
               <p className="mono-label text-b-text-tertiary mt-0.5">chief of staff</p>
               <div className="mt-8 space-y-2">
                 {[
@@ -312,7 +312,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                   className="h-5 w-auto"
                 />
               </div>
-              <h3 className="h-3 mb-2">{feature.title}</h3>
+              <h3 className="type-h3 mb-2">{feature.title}</h3>
               <p className="body-md text-b-text-secondary">
                 {feature.description}
               </p>
@@ -409,7 +409,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                   i < TIMELINE.length - 1 ? "pb-10 md:pb-14" : "pb-0"
                 }`}
               >
-                <h3 className="h-3 mb-2">{item.title}</h3>
+                <h3 className="type-h3 mb-2">{item.title}</h3>
                 <p className="body-md text-b-text-secondary">
                   {item.description}
                 </p>

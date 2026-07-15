@@ -154,7 +154,7 @@ export default function ChatInterface() {
       {/* Conversation list — Figma 280px panel */}
       <aside className="w-[280px] shrink-0 flex flex-col border-r border-b-border-subtle bg-b-sunken">
         <div className="px-5 pt-7 pb-4">
-          <h2 className="h-3 text-b-text-primary">Conversations</h2>
+          <h2 className="type-h3 text-b-text-primary">Conversations</h2>
           <p className="mono-sm text-b-text-tertiary mt-1">14 active · with Butler</p>
         </div>
 

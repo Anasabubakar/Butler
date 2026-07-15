@@ -88,7 +88,7 @@ export default function Integrations({ hasWorkspace }: IntegrationsProps) {
         {/* Section header */}
         <div className="mt-8 mb-2">
           <div className="mono-label" style={{ color: "var(--color-b-accent-text)" }}>Your household</div>
-          <h2 className="h-3 mt-1" style={{ color: "var(--color-b-text-primary)" }}>
+          <h2 className="type-h3 mt-1" style={{ color: "var(--color-b-text-primary)" }}>
             {hasWorkspace
               ? `${CONNECTED.length} services already speak to Butler.`
               : `${CONNECTED.length} services can speak to Butler as soon as you sign in.`}
@@ -125,7 +125,7 @@ function ServiceCard({ svc }: { svc: Service }) {
         />
       </div>
       <div className="flex-1 flex flex-col gap-1.5">
-        <div className="h-4" style={{ color: "var(--color-b-text-primary)" }}>{svc.name}</div>
+        <div className="type-h4" style={{ color: "var(--color-b-text-primary)" }}>{svc.name}</div>
         <div className="mono-sm" style={{ color: "var(--color-b-text-tertiary)" }}>{svc.role}</div>
         <div className="body-sm" style={{ color: "var(--color-b-text-secondary)" }}>{svc.scopes}</div>
       </div>

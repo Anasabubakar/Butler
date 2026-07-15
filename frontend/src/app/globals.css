@@ -56,10 +56,13 @@ html, body {
 .display-s  { font-family: var(--font-serif); font-weight: 400; font-size: 36px; line-height: 44px; letter-spacing: -1.5px; }
 .display-italic { font-family: var(--font-serif); font-weight: 300; font-style: italic; }
 
-.h-1 { font-family: var(--font-serif); font-weight: 600; font-size: 32px; line-height: 40px; letter-spacing: -1px; }
-.h-2 { font-family: var(--font-serif); font-weight: 600; font-size: 24px; line-height: 30px; letter-spacing: -0.5px; }
-.h-3 { font-family: var(--font-sans); font-weight: 600; font-size: 20px; line-height: 28px; letter-spacing: -0.2px; }
-.h-4 { font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 24px; letter-spacing: -0.1px; }
+/* Prefixed to avoid clashing with Tailwind height utilities (h-1, h-2, …). */
+@layer components {
+  .type-h1 { font-family: var(--font-serif); font-weight: 600; font-size: 32px; line-height: 40px; letter-spacing: -1px; }
+  .type-h2 { font-family: var(--font-serif); font-weight: 600; font-size: 24px; line-height: 30px; letter-spacing: -0.5px; }
+  .type-h3 { font-family: var(--font-sans); font-weight: 600; font-size: 20px; line-height: 28px; letter-spacing: -0.2px; }
+  .type-h4 { font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 24px; letter-spacing: -0.1px; }
+}
 
 .body-lg { font-family: var(--font-sans); font-size: 18px; line-height: 28px; }
 .body-md { font-family: var(--font-sans); font-size: 15px; line-height: 24px; }
