@@ -23,3 +23,27 @@
   --color-b-text-on-accent:  #FBF7EF;
 
   --color-b-accent:      #B85431;
+  --color-b-accent-soft: #F1D9CB;
+  --color-b-accent-text: #8A3C1F;
+
+  --color-b-success:      #5E7856;
+  --color-b-success-soft: #DEE6D3;
+  --color-b-warning:      #B8802E;
+  --color-b-warning-soft: #F4E5C5;
+  --color-b-danger:       #A63F2D;
+  --color-b-danger-soft:  #F0D4CC;
+  --color-b-info:         #3D5A6C;
+  --color-b-info-soft:    #D5E0E6;
+}
+
+html, body {
+  height: 100%;
+  background: var(--color-b-canvas);
+  color: var(--color-b-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.font-serif { font-family: var(--font-serif); }
