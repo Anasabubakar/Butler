@@ -223,3 +223,41 @@ export default function TaskDelegation() {
 
             <div>
               <p className="mono-label text-b-text-tertiary mb-4">
+                HANDLED · {inflight.length}
+              </p>
+              <div className="flex flex-col gap-4">
+                {inflight.length === 0 ? (
+                  <p className="body-sm text-b-text-secondary">No approved or in-flight items yet.</p>
+                ) : (
+                  inflight.map((d) => <DelegationCard key={d.id} item={d} />)
+                )}
+              </div>
+            </div>
+          </div>
+        ) : items.length === 0 ? (
+          <Card tone="paper" className="p-8 mt-10">
+            <p className="body-md text-b-text-secondary">No items in this view.</p>
+          </Card>
+        ) : (
+          <div className="mt-10 grid lg:grid-cols-2 gap-4">
+            {items.map((d) => (
+              <DelegationCard
+                key={d.id}
+                item={d}
+                onApprove={d.status === "awaiting" ? handleApprove : undefined}
+                onReject={d.status === "awaiting" ? handleReject : undefined}
+                busy={busyId === d.id}
+              />
+            ))}
+          </div>
+        )}
+
+        {showCreate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-b-ink/40 p-6">
+            <div className="w-full max-w-lg rounded-[14px] bg-b-paper border border-b-border-subtle p-6 shadow-xl">
+              <h2 className="type-h3 mb-4">New delegation</h2>
+              <div className="flex flex-col gap-3">
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder="What should Butler do?"
