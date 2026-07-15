@@ -64,3 +64,36 @@ func (s *ChatService) SendMessage(ctx context.Context, userID string, req ChatRe
 		title := req.Text
 		if len(title) > 100 {
 			title = title[:100]
+		}
+		thread := &model.ChatThread{
+			ID:        threadID,
+			UserID:    userID,
+			Title:     title,
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		if err := s.chatRepo.CreateThread(ctx, thread); err != nil {
+			return nil, fmt.Errorf("chat: create thread: %w", err)
+		}
+	}
+
+	// Save user message.
+	userMsg := &model.ChatMessage{
+		ID:        uuid.New().String(),
+		ThreadID:  threadID,
+		Role:      "user",
+		Text:      req.Text,
+		Mode:      req.Mode,
+		CreatedAt: now,
+	}
+	if err := s.chatRepo.CreateMessage(ctx, userMsg); err != nil {
+		return nil, fmt.Errorf("chat: save user message: %w", err)
+	}
+
+	// Load thread history for context.
+	history, err := s.chatRepo.GetMessagesByThread(ctx, threadID)
+	if err != nil {
+		return nil, fmt.Errorf("chat: load history: %w", err)
+	}
+
+	messages := make([]model.Message, 0, len(history))
