@@ -183,3 +183,49 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
   const sendTranscriptToChat = () => {
     if (transcript.length === 0) return;
     const text = transcript.join(" ");
+    sessionStorage.setItem("butler_voice_handoff", text);
+    window.location.href = "/dashboard/chat";
+  };
+
+  const applySuggestion = (s: string) => {
+    setTranscript((prev) => [...prev, s]);
+  };
+
+  const displayLine =
+    transcript.length > 0
+      ? transcript[transcript.length - 1]
+      : state === "connecting"
+      ? "Connecting to Butler…"
+      : state === "error"
+      ? error || "Voice unavailable."
+      : "Tap the orb and speak, Boss.";
+
+  const statusLabel =
+    state === "paused"
+      ? "PAUSED"
+      : state === "speaking"
+      ? "SPEAKING · IN YOUR VOICE"
+      : state === "connecting"
+      ? "CONNECTING"
+      : state === "error"
+      ? "ERROR"
+      : state === "listening"
+      ? "LISTENING · IN YOUR VOICE"
+      : "READY";
+
+  return (
+    <div className="h-full flex flex-col bg-b-ink text-b-text-inverse overflow-hidden">
+      <header className="shrink-0 flex items-center justify-between px-8 py-5 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <ButlerLogo size={28} variant="light" />
+          <span className="body-md-med text-b-text-inverse">Butler · Voice Room</span>
+        </div>
+        <div className="flex items-center gap-5">
+          <span className="mono-label text-b-text-tertiary">Zephyr voice</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3.5 py-1.5 rounded-full border border-b-border-strong mono-label text-b-text-inverse hover:bg-white/5 transition-colors cursor-pointer"
+          >
+            Close
+          </button>
