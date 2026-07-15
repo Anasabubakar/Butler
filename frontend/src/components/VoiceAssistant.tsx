@@ -229,3 +229,49 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
           >
             Close
           </button>
+        </div>
+      </header>
+
+      <div className="flex-1 relative flex min-h-0">
+        <aside className="hidden xl:block w-56 shrink-0 px-10 pt-8">
+          <p className="mono-label text-b-text-tertiary mb-4">THIS SESSION</p>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {transcript.length === 0 ? (
+              <p className="body-sm text-b-text-tertiary">Nothing captured yet.</p>
+            ) : (
+              transcript.map((line, i) => (
+                <div key={`${i}-${line.slice(0, 12)}`} className="flex gap-3">
+                  <span className="mono-sm text-b-accent-text">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="body-sm text-b-text-tertiary">“{line}”</span>
+                </div>
+              ))
+            )}
+          </div>
+        </aside>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8 min-w-0">
+          <div className="relative flex items-center justify-center mb-10">
+            <motion.div
+              className="absolute w-[360px] h-[360px] rounded-full border border-b-accent/20"
+              animate={
+                reducedMotion || state === "paused" || state === "idle"
+                  ? undefined
+                  : { scale: [1, 1.03, 1], opacity: [0.4, 0.6, 0.4] }
+              }
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="absolute w-[280px] h-[280px] rounded-full bg-b-accent/10"
+              animate={
+                reducedMotion || state === "paused"
+                  ? undefined
+                  : { scale: [1, 1.05, 1] }
+              }
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.button
+              type="button"
+              onClick={togglePause}
+              aria-label={state === "listening" ? "Pause listening" : "Start listening"}
+              className="relative w-[120px] h-[120px] rounded-full bg-b-accent flex items-center justify-center cursor-pointer shadow-[0_0_60px_rgba(184,84,49,0.35)]"
+              animate={
