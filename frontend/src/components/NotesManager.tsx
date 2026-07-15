@@ -128,3 +128,35 @@ export default function NotesManager() {
               What Butler has learned, and what you&apos;ve told it to remember.
             </p>
           </div>
+          <Button variant="accent" size="sm" onClick={openCreate} className="shrink-0 mt-2">
+            + Add memory
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-8 max-w-[1400px]">
+          {filters.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`px-3 py-2 rounded-full mono-label transition-colors cursor-pointer ${
+                filter === key
+                  ? "bg-b-ink text-b-text-inverse"
+                  : "border border-b-border-default text-b-text-secondary hover:text-b-text-primary"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {error && (
+          <p className="body-sm text-b-danger mt-6" role="alert">
+            {error}
+          </p>
+        )}
+
+        {loading ? (
+          <p className="body-sm text-b-text-tertiary mt-12 animate-pulse">Loading…</p>
+        ) : visible.length === 0 ? (
+          <div className="mt-12 max-w-lg rounded-[14px] border border-b-border-subtle bg-b-paper p-10">
