@@ -147,3 +147,52 @@ export default function CommandCenter({
               >
                 Open notifications desk
               </button>
+            </div>
+          </Card>
+
+          <Card tone="raised" className="col-span-6 xl:col-span-2 p-5 min-h-[140px] flex flex-col justify-between">
+            <div>
+              <div className="mono-label mb-2 text-b-text-tertiary">Deep work</div>
+              <div className="type-h1 text-b-text-primary">{freeHours.label}</div>
+              <div className="body-sm mt-1 text-b-text-secondary">
+                {hasWorkspace ? "open on calendar" : "connect calendar"}
+              </div>
+            </div>
+            <div className="h-1.5 rounded-full mt-4 bg-b-sunken">
+              <div
+                className="h-full rounded-full bg-b-accent transition-all"
+                style={{ width: `${freeHours.pct}%` }}
+              />
+            </div>
+          </Card>
+
+          <Card tone="raised" className="col-span-6 xl:col-span-3 p-5 min-h-[140px]">
+            <div className="mono-label mb-2 text-b-text-tertiary">Next up</div>
+            <div className="type-h4 text-b-text-primary">
+              {events[0]?.summary || (hasWorkspace ? "Nothing scheduled" : "Calendar offline")}
+            </div>
+            <div className="body-sm mt-2 whitespace-pre-line text-b-text-secondary">
+              {formatNextEvent(events)}
+            </div>
+          </Card>
+
+          <Card tone="raised" className="col-span-6 xl:col-span-2 p-5 min-h-[140px]">
+            <div className="mono-label mb-2 text-b-text-tertiary">Tasks open</div>
+            <div className="type-h1 text-b-text-primary">{pendingTasks}</div>
+            <div className="body-sm mt-2 text-b-text-secondary">
+              {hasWorkspace ? "from Google Tasks" : "connect Workspace"}
+            </div>
+          </Card>
+
+          <Card tone="raised" className="col-span-6 xl:col-span-3 p-5 min-h-[140px]">
+            <div className="mono-label mb-3 text-b-text-tertiary">AI · today</div>
+            <div className="flex flex-col gap-1.5">
+              <RouterRow model="Flash" task="fast answers" />
+              <RouterRow model="Pro" task="writing & analysis" />
+              <RouterRow model="Live" task="voice room" />
+            </div>
+          </Card>
+
+          <Card tone="raised" className="col-span-12 xl:col-span-5 p-6 min-h-[320px]">
+            <div className="mono-label mb-2 text-b-text-tertiary">
+              Agenda · {now.toLocaleDateString([], { weekday: "short" })}
