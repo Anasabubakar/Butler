@@ -334,3 +334,50 @@ export default function Settings({
                     window.location.href = "/login";
                   }
                 }}
+              >
+                Clear data
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SliderRow({
+  label,
+  value,
+  onChange,
+  low,
+  high,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  low: string;
+  high: string;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="body-md-med text-b-text-primary">{label}</span>
+        <span className="mono-label text-b-accent-text">{value}%</span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value, 10))}
+        className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+        style={{ background: "var(--color-b-sunken)", accentColor: "var(--color-b-accent)" }}
+        aria-label={label}
+      />
+      <div className="flex justify-between mt-1">
+        <span className="mono-sm text-b-text-tertiary">{low}</span>
+        <span className="mono-sm text-b-text-tertiary">{high}</span>
+      </div>
+    </div>
+  );
+}
