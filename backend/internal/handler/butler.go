@@ -144,3 +144,32 @@ func (h *ButlerHandler) Analyze(w http.ResponseWriter, r *http.Request) {
 
 // ListThreads handles GET /api/butler/threads.
 func (h *ButlerHandler) ListThreads(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	threads, err := h.chatService.GetThreads(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load threads")
+		return
+	}
+	writeJSON(w, http.StatusOK, emptyJSONArray(threads))
+}
+
+// ListMessages handles GET /api/butler/threads/{id}/messages.
+func (h *ButlerHandler) ListMessages(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	threadID := chi.URLParam(r, "id")
+	if strings.TrimSpace(threadID) == "" {
+		writeError(w, http.StatusBadRequest, "thread id is required")
+		return
+	}
+
+	msgs, err := h.chatService.GetMessages(r.Context(), userID, threadID)
+	if err != nil {
+		if strings.Contains(err.Error(), "permission denied") || strings.Contains(err.Error(), "not found") {
+			writeError(w, http.StatusNotFound, "thread not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to load messages")
+		return
+	}
+	writeJSON(w, http.StatusOK, emptyJSONArray(msgs))
+}
