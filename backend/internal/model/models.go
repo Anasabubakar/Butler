@@ -198,6 +198,10 @@ type IntegrationCatalogItem struct {
 	LastSyncedAt *string `json:"lastSyncedAt,omitempty"`
 	AuthType     string  `json:"authType"` // oauth | client | none
 	Configured   bool    `json:"configured"`
+	DocsURL      string  `json:"docsUrl,omitempty"`
+	SetupHint    string  `json:"setupHint,omitempty"`
+	// CallbackURL is the redirect URI operators must register with the OAuth app.
+	CallbackURL string `json:"callbackUrl,omitempty"`
 }
 
 // ConnectResponse is returned when starting an OAuth or client connect flow.

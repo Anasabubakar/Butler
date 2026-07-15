@@ -161,6 +161,15 @@ func runMigrations(ctx context.Context, pool *pgxpool.Pool, dir string) error {
 		}
 	}
 
+	// Track applied files so restarts never re-run (and never fail on existing objects).
+	if _, err := pool.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS schema_migrations (
+			filename   TEXT PRIMARY KEY,
+			applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		)`); err != nil {
+		return fmt.Errorf("create schema_migrations: %w", err)
+	}
+
 	var files []string
 	if info.IsDir() {
 		entries, err := os.ReadDir(dir)
@@ -183,15 +192,38 @@ func runMigrations(ctx context.Context, pool *pgxpool.Pool, dir string) error {
 	}
 
 	for _, f := range files {
+		name := filepath.Base(f)
+		var exists bool
+		if err := pool.QueryRow(ctx,
+			`SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE filename = $1)`, name,
+		).Scan(&exists); err != nil {
+			return fmt.Errorf("check migration %s: %w", name, err)
+		}
+		if exists {
+			log.Info().Str("file", name).Msg("migration already applied")
+			continue
+		}
+
 		sqlBytes, err := os.ReadFile(f)
 		if err != nil {
 			return fmt.Errorf("read migration %s: %w", f, err)
 		}
 		if _, err := pool.Exec(ctx, string(sqlBytes)); err != nil {
-			// CREATE IF NOT EXISTS style migrations should be idempotent; still surface real failures.
-			return fmt.Errorf("apply migration %s: %w", f, err)
+			// Idempotent SQL should not fail; if it does on a first run, surface it.
+			// If objects already exist from a pre-tracking deploy, mark applied and continue.
+			msg := err.Error()
+			if strings.Contains(msg, "already exists") {
+				log.Warn().Str("file", name).Err(err).Msg("migration objects already exist; recording as applied")
+			} else {
+				return fmt.Errorf("apply migration %s: %w", f, err)
+			}
 		}
-		log.Info().Str("file", f).Msg("migration applied")
+		if _, err := pool.Exec(ctx,
+			`INSERT INTO schema_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING`, name,
+		); err != nil {
+			return fmt.Errorf("record migration %s: %w", name, err)
+		}
+		log.Info().Str("file", name).Msg("migration applied")
 	}
 	return nil
 }

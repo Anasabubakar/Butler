@@ -31,7 +31,17 @@ export default function Integrations({ hasWorkspace, onConnectWorkspace }: Integ
       setItems(data);
     } catch (err) {
       setItems([]);
-      setError(err instanceof Error ? err.message : "Failed to load integrations");
+      const msg = err instanceof Error ? err.message : "Failed to load integrations";
+      // Common when backend is redeploying or migrations failed
+      if (/404|not found/i.test(msg)) {
+        setError(
+          "Integrations API not found (404). The backend is likely still on an old deploy or crash-looping. Check Render logs for migration errors, then redeploy."
+        );
+      } else if (/401|unauthorized|invalid or expired/i.test(msg)) {
+        setError("Session expired. Sign out and sign in again, then reopen Integrations.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -128,7 +138,13 @@ export default function Integrations({ hasWorkspace, onConnectWorkspace }: Integ
         return;
       }
       if (res.mode === "disabled") {
-        setMessage(res.message || `${item.name} is not configured yet.`);
+        const parts = [
+          res.message || `${item.name} OAuth is not configured on the server.`,
+          item.setupHint ? `How: ${item.setupHint}` : "",
+          item.callbackUrl ? `Callback URL to paste in the OAuth app: ${item.callbackUrl}` : "",
+          item.docsUrl ? `Docs: ${item.docsUrl}` : "",
+        ].filter(Boolean);
+        setMessage(parts.join(" · "));
         return;
       }
       setMessage(res.message || "Connect flow started.");
@@ -279,6 +295,31 @@ function ServiceCard({
         {isConnected && item.accountLabel && (
           <div className="body-sm text-b-text-tertiary mt-1">{item.accountLabel}</div>
         )}
+        {isNotConfigured && item.setupHint && (
+          <div className="body-sm text-b-text-tertiary mt-2 leading-relaxed">{item.setupHint}</div>
+        )}
+        {isNotConfigured && item.callbackUrl && (
+          <button
+            type="button"
+            className="mono-sm text-left text-b-accent-text mt-1 break-all hover:underline cursor-pointer"
+            title="Click to copy callback URL"
+            onClick={() => {
+              void navigator.clipboard?.writeText(item.callbackUrl || "");
+            }}
+          >
+            Callback: {item.callbackUrl}
+          </button>
+        )}
+        {item.docsUrl && !isConnected && (
+          <a
+            href={item.docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="body-sm text-b-accent-text mt-1 hover:underline w-fit"
+          >
+            Open developer console →
+          </a>
+        )}
       </div>
       <div className="flex items-center justify-between gap-2">
         <span className="mono-label text-b-text-tertiary">
@@ -305,7 +346,7 @@ function ServiceCard({
           <span className="mono-label text-b-text-tertiary">Soon</span>
         ) : (
           <Button size="sm" variant="primary" onClick={onConnect} disabled={busy}>
-            {busy ? "…" : isNotConfigured ? "Setup needed" : "Connect"}
+            {busy ? "…" : isNotConfigured ? "How to setup" : "Connect"}
           </Button>
         )}
       </div>

@@ -54,12 +54,14 @@ func (s *IntegrationsService) ListCatalog(ctx context.Context, userID string) ([
 	items := make([]model.IntegrationCatalogItem, 0, len(connector.Catalog))
 	for _, def := range connector.Catalog {
 		item := model.IntegrationCatalogItem{
-			ID:     string(def.ID),
-			Name:   def.Name,
-			Role:   def.Role,
-			Scopes: def.Scopes,
-			Group:  def.Group,
-			AuthType: def.AuthType,
+			ID:        string(def.ID),
+			Name:      def.Name,
+			Role:      def.Role,
+			Scopes:    def.Scopes,
+			Group:     def.Group,
+			AuthType:  def.AuthType,
+			DocsURL:   def.DocsURL,
+			SetupHint: def.SetupHint,
 		}
 
 		if def.AuthType == "coming_soon" {
@@ -72,6 +74,7 @@ func (s *IntegrationsService) ListCatalog(ctx context.Context, userID string) ([
 		if def.AuthType == "oauth" {
 			cfg := connector.LoadOAuthConfig(def, s.publicAPI)
 			item.Configured = cfg.Configured
+			item.CallbackURL = cfg.RedirectURI
 			if !cfg.Configured {
 				item.Status = "not_configured"
 			} else {

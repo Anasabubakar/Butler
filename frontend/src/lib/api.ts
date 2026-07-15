@@ -218,6 +218,9 @@ export interface IntegrationCatalogItem {
   lastSyncedAt?: string;
   authType: string;
   configured: boolean;
+  docsUrl?: string;
+  setupHint?: string;
+  callbackUrl?: string;
 }
 
 export interface ConnectResponse {

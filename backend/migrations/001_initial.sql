@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS chat_threads (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_chat_threads_user ON chat_threads(user_id);
-CREATE INDEX idx_chat_threads_updated ON chat_threads(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_threads_user ON chat_threads(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_threads_updated ON chat_threads(updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS chat_messages (
     id          TEXT PRIMARY KEY,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_chat_messages_thread ON chat_messages(thread_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id, created_at);
 
 CREATE TABLE IF NOT EXISTS notes (
     id          TEXT PRIMARY KEY,
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS notes (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_notes_user ON notes(user_id);
-CREATE INDEX idx_notes_updated ON notes(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
+CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS delegations (
     id          TEXT PRIMARY KEY,
@@ -54,8 +54,8 @@ CREATE TABLE IF NOT EXISTS delegations (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_delegations_user ON delegations(user_id);
-CREATE INDEX idx_delegations_status ON delegations(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_delegations_user ON delegations(user_id);
+CREATE INDEX IF NOT EXISTS idx_delegations_status ON delegations(user_id, status);
 
 CREATE TABLE IF NOT EXISTS notifications (
     id          TEXT PRIMARY KEY,
@@ -68,8 +68,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_notifications_user ON notifications(user_id, created_at DESC);
-CREATE INDEX idx_notifications_unread ON notifications(user_id) WHERE read = FALSE;
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id) WHERE read = FALSE;
 
 CREATE TABLE IF NOT EXISTS user_settings (
     user_id             TEXT PRIMARY KEY,

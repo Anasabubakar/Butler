@@ -65,6 +65,34 @@ func BuildAuthURL(def Definition, cfg OAuthConfig, state string) string {
 			q.Set("scope", strings.Join(def.DefaultScopes, ","))
 		}
 		q.Set("prompt", "consent")
+	case ProviderFigma:
+		if len(def.DefaultScopes) > 0 {
+			q.Set("scope", strings.Join(def.DefaultScopes, " "))
+		}
+	case ProviderDiscord:
+		if len(def.DefaultScopes) > 0 {
+			q.Set("scope", strings.Join(def.DefaultScopes, " "))
+		}
+	case ProviderMicrosoft:
+		if len(def.DefaultScopes) > 0 {
+			q.Set("scope", strings.Join(def.DefaultScopes, " "))
+		}
+		q.Set("response_mode", "query")
+	case ProviderDropbox:
+		q.Set("token_access_type", "offline")
+	case ProviderAsana:
+		// Asana uses default scopes on the app
+	case ProviderTrello:
+		// Trello 1.0 authorize uses different params
+		q.Del("response_type")
+		q.Set("expiration", "never")
+		q.Set("name", "Butler")
+		q.Set("scope", strings.Join(def.DefaultScopes, ","))
+		q.Set("response_type", "token") // fragment token flow — limited; prefer API key apps
+		q.Set("key", cfg.ClientID)
+		q.Set("return_url", cfg.RedirectURI)
+		q.Del("client_id")
+		q.Del("redirect_uri")
 	default:
 		if len(def.DefaultScopes) > 0 {
 			q.Set("scope", strings.Join(def.DefaultScopes, " "))
@@ -94,9 +122,65 @@ func ExchangeCode(ctx context.Context, def Definition, cfg OAuthConfig, code str
 		return exchangeNotion(ctx, def, cfg, code)
 	case ProviderSlack:
 		return exchangeSlack(ctx, def, cfg, code)
+	case ProviderFigma:
+		return exchangeFigma(ctx, def, cfg, code)
+	case ProviderDiscord:
+		return exchangeForm(ctx, def, cfg, code)
+	case ProviderMicrosoft:
+		return exchangeForm(ctx, def, cfg, code)
+	case ProviderDropbox:
+		return exchangeForm(ctx, def, cfg, code)
+	case ProviderAsana:
+		return exchangeForm(ctx, def, cfg, code)
+	case ProviderTrello:
+		// Trello token may be returned as fragment; if we receive a code-like token, store it.
+		return &TokenResult{AccessToken: code, TokenType: "Bearer", AccountLabel: "Trello"}, nil
 	default:
 		return exchangeForm(ctx, def, cfg, code)
 	}
+}
+
+func exchangeFigma(ctx context.Context, def Definition, cfg OAuthConfig, code string) (*TokenResult, error) {
+	form := url.Values{}
+	form.Set("client_id", cfg.ClientID)
+	form.Set("client_secret", cfg.ClientSecret)
+	form.Set("redirect_uri", cfg.RedirectURI)
+	form.Set("code", code)
+	form.Set("grant_type", "authorization_code")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, def.TokenURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("figma token exchange failed: %s", string(body))
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, err
+	}
+	tr := &TokenResult{
+		AccessToken:  str(raw["access_token"]),
+		RefreshToken: str(raw["refresh_token"]),
+		TokenType:    str(raw["token_type"]),
+		Raw:          raw,
+	}
+	if v, ok := raw["expires_in"].(float64); ok {
+		tr.ExpiresIn = int(v)
+	}
+	if def.UserInfoURL != "" && tr.AccessToken != "" {
+		label, id, _ := fetchUserLabel(ctx, def, tr.AccessToken)
+		tr.AccountLabel = label
+		tr.AccountID = id
+	}
+	return tr, nil
 }
 
 func exchangeForm(ctx context.Context, def Definition, cfg OAuthConfig, code string) (*TokenResult, error) {
@@ -278,6 +362,17 @@ func fetchUserLabel(ctx context.Context, def Definition, accessToken string) (la
 		return firstNonEmpty(str(raw["login"]), str(raw["name"])), fmt.Sprintf("%v", raw["id"]), nil
 	case ProviderSlack:
 		return str(raw["user"]), str(raw["user_id"]), nil
+	case ProviderDiscord:
+		return firstNonEmpty(str(raw["global_name"]), str(raw["username"])), str(raw["id"]), nil
+	case ProviderMicrosoft:
+		return firstNonEmpty(str(raw["displayName"]), str(raw["mail"]), str(raw["userPrincipalName"])), str(raw["id"]), nil
+	case ProviderFigma:
+		return firstNonEmpty(str(raw["handle"]), str(raw["email"])), str(raw["id"]), nil
+	case ProviderAsana:
+		if data, ok := raw["data"].(map[string]any); ok {
+			return str(data["name"]), str(data["gid"]), nil
+		}
+		return str(raw["name"]), str(raw["gid"]), nil
 	default:
 		return str(raw["name"]), str(raw["id"]), nil
 	}
