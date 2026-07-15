@@ -58,3 +58,32 @@ func main() {
 	firebaseAuth, err := middleware.NewFirebaseAuth(cfg.FirebaseProject)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize Firebase Auth")
+	}
+
+	chatRepo := repository.NewPgChatRepository(pool)
+	notesRepo := repository.NewPgNotesRepository(pool)
+	delegationsRepo := repository.NewPgDelegationsRepository(pool)
+	notificationsRepo := repository.NewPgNotificationsRepository(pool)
+	settingsRepo := repository.NewPgSettingsRepository(pool)
+
+	geminiClient := gemini.NewClient(cfg.GeminiAPIKey)
+	liveBridge := gemini.NewLiveBridge(cfg.GeminiAPIKey)
+
+	chatSvc := service.NewChatService(geminiClient, chatRepo)
+	notesSvc := service.NewNotesService(notesRepo)
+	delegationsSvc := service.NewDelegationsService(delegationsRepo)
+	notificationsSvc := service.NewNotificationsService(notificationsRepo)
+	settingsSvc := service.NewSettingsService(settingsRepo)
+
+	handlers := router.Handlers{
+		Butler:        handler.NewButlerHandler(chatSvc),
+		Notes:         handler.NewNotesHandler(notesSvc),
+		Delegations:   handler.NewDelegationsHandler(delegationsSvc),
+		Notifications: handler.NewNotificationsHandler(notificationsSvc),
+		Settings:      handler.NewSettingsHandler(settingsSvc),
+		WS:            handler.NewWSHandler(liveBridge, firebaseAuth, cfg.CORSOrigins),
+	}
+
+	r := router.New(handlers, firebaseAuth, cfg.CORSOrigins)
+
+	srv := &http.Server{
