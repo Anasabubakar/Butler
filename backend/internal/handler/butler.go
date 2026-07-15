@@ -28,3 +28,32 @@ type chatRequest struct {
 	Lat      *float64       `json:"lat,omitempty"`
 	Lng      *float64       `json:"lng,omitempty"`
 }
+
+type chatResponse struct {
+	Text             string                  `json:"text"`
+	Thinking         string                  `json:"thinking,omitempty"`
+	GroundingSources []model.GroundingSource `json:"groundingSources,omitempty"`
+	ThreadID         string                  `json:"threadId"`
+	ModelUsed        string                  `json:"modelUsed"`
+}
+
+// Chat handles POST /api/butler/chat.
+func (h *ButlerHandler) Chat(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+
+	var req chatRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 50<<20)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Text == "" {
+		writeError(w, http.StatusBadRequest, "text is required")
+		return
+	}
+
+	if req.Mode == "" {
+		req.Mode = model.ChatModeGeneral
+	}
+
+	svcReq := service.ChatRequest{
