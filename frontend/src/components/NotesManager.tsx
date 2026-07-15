@@ -31,3 +31,35 @@ export default function NotesManager() {
       const data = await api.notes.list();
       setNotes(Array.isArray(data) ? data : []);
     } catch (err) {
+      setNotes([]);
+      setError(err instanceof Error ? err.message : "Failed to load notes");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  const tags = useMemo(() => {
+    const set = new Set<string>();
+    notes.forEach((n) => {
+      if (n.tag) set.add(n.tag.toLowerCase());
+    });
+    return Array.from(set).sort();
+  }, [notes]);
+
+  const filters: Array<{ key: MemoryFilter; label: string }> = [
+    { key: "all", label: `All memory · ${notes.length}` },
+    ...tags.map((t) => ({
+      key: t,
+      label: t.charAt(0).toUpperCase() + t.slice(1),
+    })),
+  ];
+
+  const visible =
+    filter === "all"
+      ? notes
+      : notes.filter((n) => (n.tag || "").toLowerCase() === filter);
+
