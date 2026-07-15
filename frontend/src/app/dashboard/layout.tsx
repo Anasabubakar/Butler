@@ -3,9 +3,9 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import Rail, { type RailKey } from "@/components/Rail";
+import Sidebar, { type SidebarKey } from "@/components/Sidebar";
 
-const PATH_TO_RAIL: Record<string, RailKey> = {
+const PATH_TO_SIDEBAR: Record<string, SidebarKey> = {
   "/dashboard": "home",
   "/dashboard/chat": "chat",
   "/dashboard/delegation": "delegation",
@@ -16,7 +16,7 @@ const PATH_TO_RAIL: Record<string, RailKey> = {
   "/dashboard/settings": "settings",
 };
 
-const RAIL_TO_PATH: Record<RailKey, string> = {
+const SIDEBAR_TO_PATH: Record<SidebarKey, string> = {
   home: "/dashboard",
   brief: "/dashboard",
   chat: "/dashboard/chat",
@@ -41,16 +41,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading || !user) return null;
 
-  const activeRail = PATH_TO_RAIL[pathname] || "home";
-
-  const handleSelect = (key: RailKey) => {
-    router.push(RAIL_TO_PATH[key]);
-  };
+  const active = PATH_TO_SIDEBAR[pathname] || "home";
 
   return (
-    <div className="h-screen flex overflow-hidden">
-      <Rail active={activeRail} onSelect={handleSelect} />
-      <main className="flex-1 overflow-hidden">{children}</main>
+    <div className="h-screen flex overflow-hidden bg-b-canvas">
+      <Sidebar
+        active={active}
+        onSelect={(key) => router.push(SIDEBAR_TO_PATH[key])}
+      />
+      <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
     </div>
   );
 }
