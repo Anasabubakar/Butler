@@ -148,3 +148,41 @@ export default function TaskDelegation() {
     { key: "approved", label: "Approved" },
     { key: "rejected", label: "Rejected" },
     { key: "all", label: "All" },
+  ];
+
+  const awaiting = items.filter((d) => d.status === "awaiting");
+  const inflight = items.filter((d) => d.status === "in_flight" || d.status === "approved");
+  const showSplit = filter === "awaiting" || filter === "all";
+
+  return (
+    <div className="h-full overflow-y-auto bg-b-canvas">
+      <div className="px-14 pt-14 pb-14 max-w-[1400px]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="display-s text-b-text-primary">Delegated Work</h1>
+            <p className="body-lg mt-4 text-b-text-secondary">
+              Butler drafts on your behalf. You approve; it acts.
+            </p>
+          </div>
+          <Button variant="accent" size="sm" onClick={() => setShowCreate(true)} className="shrink-0 mt-2">
+            + New delegation
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-8">
+          {filters.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`px-3.5 py-2 rounded-full mono-label transition-colors cursor-pointer ${
+                filter === key
+                  ? "bg-b-ink text-b-text-inverse"
+                  : "border border-b-border-default text-b-text-secondary hover:text-b-text-primary"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
