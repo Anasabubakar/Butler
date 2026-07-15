@@ -150,84 +150,210 @@ export default function ChatInterface() {
   }, [input, mode, threadId, sending]);
 
   return (
-    <div className="h-full flex flex-col bg-b-canvas">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-b-border-subtle">
-        <h2 className="heading-md">Chat with Butler</h2>
-        <div className="flex gap-1.5">
-          {MODES.map((m) => (
-            <Chip
-              key={m.key}
-              tone={mode === m.key ? "ink" : "neutral"}
-              variant={mode === m.key ? "solid" : "soft"}
-              className="cursor-pointer"
-              onClick={() => setMode(m.key)}
-            >
-              {m.label}
-            </Chip>
-          ))}
+    <div className="h-full flex bg-b-canvas overflow-hidden">
+      {/* Conversation list — Figma 280px panel */}
+      <aside className="w-[280px] shrink-0 flex flex-col border-r border-b-border-subtle bg-b-sunken">
+        <div className="px-5 pt-7 pb-4">
+          <h2 className="h-3 text-b-text-primary">Conversations</h2>
+          <p className="mono-sm text-b-text-tertiary mt-1">14 active · with Butler</p>
         </div>
-      </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <p className="heading-sm text-b-text-secondary">
-              What can I help you with, Boss?
-            </p>
-            <p className="body-sm text-b-text-tertiary mt-1">
-              Ask me anything — calendar, tasks, email, or general questions.
-            </p>
-          </div>
-        )}
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`max-w-[75%] rounded-[14px] px-4 py-3 ${
-              msg.role === "user"
-                ? "ml-auto bg-b-ink text-b-text-inverse"
-                : "mr-auto bg-b-raised border border-b-border-subtle"
-            }`}
+        <div className="px-5 pb-3">
+          <button
+            type="button"
+            onClick={startNewThread}
+            className="w-full flex items-center justify-center px-4 py-2.5 rounded-full bg-b-ink text-b-text-inverse body-sm-med hover:opacity-90 transition-opacity cursor-pointer"
           >
-            <p className="body-sm whitespace-pre-wrap">{msg.text}</p>
-            {msg.groundingSources && msg.groundingSources.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-b-border-subtle">
-                <p className="mono-label text-b-text-tertiary mb-1">Sources</p>
-                {msg.groundingSources.map((s, i) => (
-                  <a
-                    key={i}
-                    href={s.uri}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-b-accent-text body-xs hover:underline"
-                  >
-                    {s.title}
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-        {sending && (
-          <div className="mr-auto px-4 py-3 bg-b-raised rounded-[14px] border border-b-border-subtle">
-            <span className="body-sm text-b-text-tertiary animate-pulse">
-              Butler is thinking...
-            </span>
-          </div>
-        )}
-      </div>
+            + Begin a new thread
+          </button>
+        </div>
 
-      <div className="border-t border-b-border-subtle px-6 py-4">
-        <div className="flex items-center gap-3">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
-            placeholder="Ask Butler anything..."
-            className="flex-1 bg-b-sunken rounded-[10px] px-4 py-2.5 body-sm text-b-text-primary placeholder:text-b-text-tertiary outline-none border border-transparent focus:border-b-accent"
-          />
-          <Button variant="accent" onClick={send} disabled={sending || !input.trim()}>
-            Send
-          </Button>
+        <div className="flex-1 overflow-y-auto px-5 pb-5 flex flex-col gap-1">
+          {THREADS.map((t) => {
+            const isActive = activeThread === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => selectThread(t.id)}
+                className={`w-full text-left rounded-[10px] px-4 py-3 transition-colors cursor-pointer ${
+                  isActive
+                    ? "bg-b-paper border border-b-border-subtle"
+                    : "hover:bg-b-paper/50"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="body-md-med text-b-text-primary truncate">{t.title}</p>
+                  <span className="mono-sm text-b-text-tertiary shrink-0">{t.time}</span>
+                </div>
+                <p className="body-sm text-b-text-tertiary mt-0.5 truncate">{t.subtitle}</p>
+                {t.badge && (
+                  <span
+                    className={`inline-block mt-2 px-1.5 py-0.5 rounded-[4px] mono-label ${BADGE_STYLES[t.badge]}`}
+                  >
+                    {t.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* Main chat pane */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="h-[72px] shrink-0 flex items-center justify-between px-10 border-b border-b-border-subtle">
+          <div>
+            <h1 className="body-md-med text-b-text-primary">
+              {activeThread === "new" ? "New conversation" : thread.title}
+            </h1>
+            <p className="mono-sm text-b-text-tertiary mt-0.5">
+              {activeThread === "series-b"
+                ? "with Kai Rivera · connected to Slack, Notion, GDrive"
+                : "with Butler · your chief of staff"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-b-paper border border-b-border-subtle">
+            <span className="text-b-accent text-[10px]">●</span>
+            <span className="mono-label text-b-text-secondary">{MODE_LABELS[mode]}</span>
+          </div>
+        </header>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-10 py-6">
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <p className="heading-sm text-b-text-secondary">
+                What can I help you with, Boss?
+              </p>
+              <p className="body-sm text-b-text-tertiary mt-1">
+                Ask me anything — calendar, tasks, email, or general questions.
+              </p>
+            </div>
+          )}
+
+          <AnimatePresence initial={false}>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className={`mb-6 ${msg.role === "user" ? "flex justify-end" : ""}`}
+              >
+                {msg.role === "model" ? (
+                  <div className="flex gap-3 max-w-[720px]">
+                    <div className="w-8 h-8 shrink-0 rounded-[8px] bg-b-accent-soft flex items-center justify-center overflow-hidden">
+                      <ButlerLogo size={24} variant="dark" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="mono-label text-b-text-tertiary mb-2">
+                        Butler · in your voice
+                      </p>
+                      <p className="body-md text-b-text-primary whitespace-pre-wrap leading-relaxed">
+                        {msg.text}
+                      </p>
+                      {msg.groundingSources && msg.groundingSources.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-b-border-subtle">
+                          <p className="mono-label text-b-text-tertiary mb-1">Sources</p>
+                          {msg.groundingSources.map((s, i) => (
+                            <a
+                              key={i}
+                              href={s.uri}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block text-b-accent-text body-xs hover:underline"
+                            >
+                              {s.title}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {activeThread === "series-b" && msg.id === "intro" && (
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          <button
+                            type="button"
+                            className="px-4 py-2 rounded-full bg-b-accent text-b-text-on-accent body-sm-med hover:opacity-90 transition-opacity cursor-pointer"
+                          >
+                            Approve reply
+                          </button>
+                          <button
+                            type="button"
+                            className="px-3.5 py-2 rounded-full border border-b-border-default body-sm-med text-b-text-primary hover:bg-b-sunken transition-colors cursor-pointer"
+                          >
+                            Show alternatives
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-w-[560px] px-4 py-3 rounded-[14px] bg-b-ink text-b-text-inverse">
+                    <p className="body-md whitespace-pre-wrap">{msg.text}</p>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {sending && (
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              className="flex gap-3 max-w-[720px]"
+            >
+              <div className="w-8 h-8 shrink-0 rounded-[8px] bg-b-accent-soft flex items-center justify-center">
+                <ButlerLogo size={24} variant="dark" />
+              </div>
+              <p className="body-sm text-b-text-tertiary animate-pulse pt-1">
+                Butler is thinking...
+              </p>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Composer */}
+        <div className="shrink-0 px-10 pb-8">
+          <div className="rounded-[20px] border border-b-border-default bg-b-raised shadow-[0_8px_24px_rgba(26,15,8,0.08)] p-5">
+            <p className="body-lg text-b-text-tertiary mb-4">
+              Ask Butler — or paste, drag, dictate.
+            </p>
+
+            <div className="flex flex-wrap gap-1 p-1.5 rounded-full bg-b-sunken w-fit mb-4">
+              {MODES.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setMode(m.key)}
+                  className={`px-3 py-1.5 rounded-full body-sm-med transition-colors cursor-pointer ${
+                    mode === m.key
+                      ? "bg-b-raised text-b-text-primary shadow-sm"
+                      : "text-b-text-secondary hover:text-b-text-primary"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+                placeholder="Message Butler..."
+                className="flex-1 bg-transparent body-md text-b-text-primary placeholder:text-b-text-tertiary outline-none"
+              />
+              <button
+                type="button"
+                onClick={send}
+                disabled={sending || !input.trim()}
+                className="px-5 py-2 rounded-full bg-b-ink text-b-text-inverse body-sm-med hover:opacity-90 disabled:opacity-40 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+              >
+                Send
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
