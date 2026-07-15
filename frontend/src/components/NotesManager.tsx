@@ -1,21 +1,89 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import { api } from "@/lib/api";
 import type { Note } from "@/types";
-import Card from "./Card";
-import Chip from "./Chip";
 import Button from "./Button";
+import { usePrefersReducedMotion } from "@/lib/motion";
 
-const COLORS = ["#F5EFE6", "#B85431", "#2D6A4F", "#1D3557", "#6D597A", "#BC6C25"];
+type MemoryFilter = "all" | "people" | "projects" | "boss" | "system";
+
+interface MemoryCard {
+  id: string;
+  category: string;
+  title: string;
+  body: string;
+  variant: "paper" | "accent";
+  rotate: number;
+}
+
+const FILTERS: Array<{ key: MemoryFilter; label: string }> = [
+  { key: "all", label: "All memory · 148" },
+  { key: "people", label: "About people" },
+  { key: "projects", label: "About projects" },
+  { key: "boss", label: "About Boss" },
+  { key: "system", label: "System" },
+];
+
+const DEMO_MEMORIES: MemoryCard[] = [
+  {
+    id: "kai",
+    category: "PEOPLE · KAI",
+    title: "Kai prefers dry replies before 10am.",
+    body: "Especially about the deck. Anything mushy reads wrong to him — save warmth for the last sentence.",
+    variant: "paper",
+    rotate: 1.5,
+  },
+  {
+    id: "meridian",
+    category: "PROJECT · MERIDIAN",
+    title: "Meridian is sensitive to deploy windows.",
+    body: "Never book anything against a Wed/Thu ship. They will remember for weeks.",
+    variant: "accent",
+    rotate: -1,
+  },
+  {
+    id: "board",
+    category: "REFERENCE · BOARD",
+    title: "Board pack reads best with a graph up front.",
+    body: "The last three packs that landed well opened with a single chart — one number, one arrow. Boss likes this format.",
+    variant: "paper",
+    rotate: 0.5,
+  },
+  {
+    id: "friday",
+    category: "BOSS · RITUAL",
+    title: "No deep-work holds on late-week Fridays.",
+    body: "You take Fridays 3PM onward off. Butler auto-declines meeting requests inside that window — quietly.",
+    variant: "paper",
+    rotate: -1.5,
+  },
+  {
+    id: "signature",
+    category: "SYSTEM",
+    title: "Draft signature.",
+    body: "Boss signs personal notes with — B. Boss signs professional notes with the full first name only.",
+    variant: "accent",
+    rotate: 1,
+  },
+  {
+    id: "amara",
+    category: "PEOPLE · AMARA",
+    title: "Coffee, not tea.",
+    body: "In every draft to Amara: offer coffee. She's on record about it. Butler will remember.",
+    variant: "paper",
+    rotate: -0.5,
+  },
+];
 
 export default function NotesManager() {
+  const reducedMotion = usePrefersReducedMotion();
   const [notes, setNotes] = useState<Note[]>([]);
-  const [editing, setEditing] = useState<Note | null>(null);
+  const [filter, setFilter] = useState<MemoryFilter>("all");
+  const [showEditor, setShowEditor] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [color, setColor] = useState(COLORS[0]);
-  const [tag, setTag] = useState("");
   const [loading, setLoading] = useState(true);
 
   const fetchNotes = useCallback(async () => {
