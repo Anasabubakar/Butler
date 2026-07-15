@@ -68,3 +68,27 @@ function readPersistedGoogleToken(): string | null {
 /** Google OAuth access token for Workspace APIs (Calendar, Gmail, Tasks, Drive). */
 export function getAccessToken(): string | null {
   return readPersistedGoogleToken();
+}
+
+export function hasGoogleWorkspace(): boolean {
+  return Boolean(getAccessToken());
+}
+
+export async function googleSignIn(): Promise<{
+  user: User;
+  accessToken: string;
+}> {
+  const firebaseAuth = getFirebaseAuth();
+  if (!firebaseAuth) throw new Error("Firebase not initialized");
+  const result = await signInWithPopup(firebaseAuth, buildProvider());
+  const credential = GoogleAuthProvider.credentialFromResult(result);
+  const accessToken = credential?.accessToken || "";
+  persistGoogleToken(accessToken || null);
+  return { user: result.user, accessToken };
+}
+
+/** Re-prompt for Google Workspace scopes when the OAuth token is missing/expired. */
+export async function reconnectGoogleWorkspace(): Promise<string | null> {
+  const firebaseAuth = getFirebaseAuth();
+  const user = firebaseAuth?.currentUser;
+  if (!firebaseAuth || !user) return null;
