@@ -90,7 +90,7 @@ export default function NotesManager() {
     setLoading(true);
     try {
       const data = await api.notes.list();
-      setNotes(data);
+      setNotes(Array.isArray(data) ? data : []);
     } catch {
       setNotes([]);
     } finally {

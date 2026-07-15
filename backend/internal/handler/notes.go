@@ -30,10 +30,7 @@ func (h *NotesHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if notes == nil {
-		notes = []*model.Note{}
-	}
-	writeJSON(w, http.StatusOK, notes)
+	writeJSON(w, http.StatusOK, emptyJSONArray(notes))
 }
 
 // Create handles POST /api/notes.

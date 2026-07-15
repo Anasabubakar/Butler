@@ -30,7 +30,7 @@ func (h *NotificationsHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, notifications)
+	writeJSON(w, http.StatusOK, emptyJSONArray(notifications))
 }
 
 func (h *NotificationsHandler) MarkRead(w http.ResponseWriter, r *http.Request) {

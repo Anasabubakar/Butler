@@ -153,7 +153,7 @@ export default function TaskDelegation() {
     try {
       const status = filter === "awaiting" ? "awaiting" : filter === "all" ? undefined : filter;
       const data = await api.delegations.list(status ?? "awaiting");
-      setItems(data);
+      setItems(Array.isArray(data) ? data : []);
     } catch {
       setItems([]);
     } finally {

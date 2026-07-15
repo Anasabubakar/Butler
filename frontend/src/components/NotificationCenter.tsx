@@ -119,7 +119,7 @@ export default function NotificationCenter() {
     setLoading(true);
     try {
       const data = await api.notifications.list();
-      setItems(data);
+      setItems(Array.isArray(data) ? data : []);
     } catch {
       setItems([]);
     } finally {

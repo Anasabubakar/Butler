@@ -33,7 +33,7 @@ func (h *DelegationsHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, delegations)
+	writeJSON(w, http.StatusOK, emptyJSONArray(delegations))
 }
 
 // Approve handles POST /api/delegations/{id}/approve.

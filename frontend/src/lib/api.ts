@@ -27,6 +27,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+async function requestArray<T>(path: string, options: RequestInit = {}): Promise<T[]> {
+  const data = await request<T[] | null>(path, options);
+  return Array.isArray(data) ? data : [];
+}
+
 export const api = {
   butler: {
     chat: (data: {
@@ -62,7 +67,7 @@ export const api = {
   },
 
   notes: {
-    list: () => request<Note[]>("/api/notes"),
+    list: () => requestArray<Note>("/api/notes"),
 
     create: (data: {
       title: string;
@@ -87,7 +92,7 @@ export const api = {
 
   delegations: {
     list: (status?: string) =>
-      request<Delegation[]>(
+      requestArray<Delegation>(
         `/api/delegations${status ? `?status=${status}` : ""}`
       ),
 
@@ -100,7 +105,7 @@ export const api = {
 
   notifications: {
     list: (source?: string) =>
-      request<Notification[]>(
+      requestArray<Notification>(
         `/api/notifications${source ? `?source=${source}` : ""}`
       ),
 
