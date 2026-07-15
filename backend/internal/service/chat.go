@@ -130,3 +130,36 @@ func (s *ChatService) SendMessage(ctx context.Context, userID string, req ChatRe
 
 	// Update thread metadata.
 	thread, _ := s.chatRepo.GetThread(ctx, threadID)
+	if thread != nil {
+		now = time.Now().UTC()
+		thread.LastMessageAt = now
+		thread.UpdatedAt = now
+		if thread.Subtitle == "" {
+			sub := geminiResp.Text
+			if len(sub) > 80 {
+				sub = sub[:80] + "…"
+			}
+			thread.Subtitle = sub
+		}
+		_ = s.chatRepo.UpdateThread(ctx, thread)
+	}
+
+	return &ChatServiceResponse{
+		Text:             geminiResp.Text,
+		ThinkingText:     geminiResp.ThinkingText,
+		GroundingSources: geminiResp.GroundingSources,
+		ModelUsed:        geminiResp.ModelUsed,
+		ThreadID:         threadID,
+	}, nil
+}
+
+// Transcribe converts audio to text.
+func (s *ChatService) Transcribe(ctx context.Context, audioBase64 string, mimeType string) (string, error) {
+	text, err := s.geminiClient.Transcribe(ctx, audioBase64, mimeType)
+	if err != nil {
+		return "", fmt.Errorf("chat: transcribe: %w", err)
+	}
+	return text, nil
+}
+
+// Analyze processes a file with an optional prompt.
