@@ -59,3 +59,23 @@ func New(h Handlers, auth *middleware.FirebaseAuth, corsOrigins []string) chi.Ro
 		})
 
 		api.Route("/delegations", func(del chi.Router) {
+			del.Get("/", h.Delegations.List)
+			del.Post("/", h.Delegations.Create)
+			del.Post("/{id}/approve", h.Delegations.Approve)
+			del.Post("/{id}/reject", h.Delegations.Reject)
+		})
+
+		api.Route("/notifications", func(notif chi.Router) {
+			notif.Get("/", h.Notifications.List)
+			notif.Post("/{id}/read", h.Notifications.MarkRead)
+			notif.Post("/read-all", h.Notifications.MarkAllRead)
+		})
+
+		api.Route("/settings", func(s chi.Router) {
+			s.Get("/", h.Settings.Get)
+			s.Put("/", h.Settings.Update)
+		})
+	})
+
+	return r
+}
