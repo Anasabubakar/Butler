@@ -313,3 +313,48 @@ export default function ChatInterface() {
             <p className="body-lg text-b-text-tertiary mb-4">Ask Butler — or paste, dictate, plan.</p>
 
             <div className="flex flex-wrap gap-1 p-1.5 rounded-full bg-b-sunken w-fit mb-4" role="tablist" aria-label="Chat mode">
+              {MODES.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === m.key}
+                  onClick={() => setMode(m.key)}
+                  className={`px-3 py-1.5 rounded-full body-sm-med transition-colors cursor-pointer ${
+                    mode === m.key
+                      ? "bg-b-raised text-b-text-primary shadow-sm"
+                      : "text-b-text-secondary hover:text-b-text-primary"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label htmlFor="butler-chat-input" className="sr-only">
+                Message Butler
+              </label>
+              <input
+                id="butler-chat-input"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+                placeholder="Message Butler..."
+                className="flex-1 bg-transparent body-md text-b-text-primary placeholder:text-b-text-tertiary outline-none"
+              />
+              <button
+                type="button"
+                onClick={send}
+                disabled={sending || !input.trim()}
+                className="px-5 py-2 rounded-full bg-b-ink text-b-text-inverse body-sm-med hover:opacity-90 disabled:opacity-40 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
