@@ -117,3 +117,33 @@ func main() {
 }
 
 func runMigrations(ctx context.Context, pool *pgxpool.Pool, dir string) error {
+	if dir == "" {
+		dir = "migrations"
+	}
+
+	// Support both a directory of *.sql and a single file path for backwards compatibility.
+	info, err := os.Stat(dir)
+	if err != nil {
+		// Try relative to executable working directory fallbacks.
+		candidates := []string{dir, filepath.Join("backend", dir), "migrations"}
+		found := false
+		for _, c := range candidates {
+			if _, e := os.Stat(c); e == nil {
+				dir = c
+				info, err = os.Stat(dir)
+				found = err == nil
+				if found {
+					break
+				}
+			}
+		}
+		if !found {
+			return fmt.Errorf("migrations path %q not found", dir)
+		}
+	}
+
+	var files []string
+	if info.IsDir() {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return err
