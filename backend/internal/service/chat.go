@@ -31,3 +31,36 @@ type ChatServiceResponse struct {
 
 // ChatService provides business logic for chat interactions.
 type ChatService struct {
+	geminiClient *gemini.Client
+	chatRepo     repository.ChatRepository
+}
+
+// NewChatService creates a new ChatService.
+func NewChatService(geminiClient *gemini.Client, chatRepo repository.ChatRepository) *ChatService {
+	return &ChatService{
+		geminiClient: geminiClient,
+		chatRepo:     chatRepo,
+	}
+}
+
+// SendMessage processes a chat message: manages threads, calls Gemini, persists history.
+func (s *ChatService) SendMessage(ctx context.Context, userID string, req ChatRequest) (*ChatServiceResponse, error) {
+	now := time.Now().UTC()
+
+	// Resolve or create thread.
+	var threadID string
+	if req.ThreadID != nil && *req.ThreadID != "" {
+		threadID = *req.ThreadID
+		// Verify thread exists and belongs to user.
+		thread, err := s.chatRepo.GetThread(ctx, threadID)
+		if err != nil {
+			return nil, fmt.Errorf("chat: thread not found: %w", err)
+		}
+		if thread.UserID != userID {
+			return nil, fmt.Errorf("chat: permission denied")
+		}
+	} else {
+		threadID = uuid.New().String()
+		title := req.Text
+		if len(title) > 100 {
+			title = title[:100]
