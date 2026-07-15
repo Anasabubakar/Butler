@@ -34,3 +34,38 @@ export default function NotificationCenter() {
       setItems(data);
     } catch (err) {
       setItems([]);
+      setError(err instanceof Error ? err.message : "Failed to load notifications");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  const unread = useMemo(() => items.filter((n) => !n.read), [items]);
+  const read = useMemo(() => items.filter((n) => n.read), [items]);
+
+  const visible = tab === "unread" ? unread : tab === "read" ? read : items;
+
+  const handleMarkRead = async (id: string) => {
+    try {
+      await api.notifications.markRead(id);
+      setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to mark read");
+    }
+  };
+
+  const handleMarkAll = async () => {
+    try {
+      await api.notifications.markAllRead();
+      setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to mark all read");
+    }
+  };
+
+  const stats = [
+    {
