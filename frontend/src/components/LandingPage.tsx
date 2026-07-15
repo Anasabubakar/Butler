@@ -1,18 +1,21 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Button from "./Button";
+import ButlerLogo from "./ButlerLogo";
+import { fadeUp, usePrefersReducedMotion } from "@/lib/motion";
 
 interface LandingPageProps {
   onGetStarted: () => void;
 }
 
 const PARTNERS = [
-  "Inbox Studio",
-  "North & Park",
-  "Alexandra Labs",
-  "Founded 27",
-  "Calendarize",
-  "Nighthaven Co.",
+  "Ashby Studio",
+  "North & Fern",
+  "Meridian Labs",
+  "Foundry 27",
+  "Cadence",
+  "Nightingale Co.",
 ];
 
 const FEATURES = [
@@ -72,198 +75,187 @@ const TIMELINE = [
 ];
 
 const NAV_LINKS = [
-  { label: "Home", href: "#" },
+  { label: "Story", href: "#philosophy" },
   { label: "Services", href: "#features" },
   { label: "The Brief", href: "#timeline" },
+  { label: "Trust", href: "#testimonial" },
   { label: "Pricing", href: "#cta" },
 ];
 
 export default function LandingPage({ onGetStarted }: LandingPageProps) {
+  const reducedMotion = usePrefersReducedMotion();
+
   return (
     <div className="min-h-screen bg-b-canvas">
-      {/* ──── Navigation ──── */}
-      <nav className="flex items-center justify-between px-6 md:px-10 py-5 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2.5">
-          <img
-            src="/images/logo-dark-nobg.svg"
-            alt="Butler"
-            className="h-7 w-auto"
-          />
-          <span className="h-4">Butler</span>
+      <nav className="flex items-center justify-between px-8 lg:px-14 py-6 w-full">
+        <div className="flex items-center gap-3">
+          <ButlerLogo size={36} variant="dark" />
+          <span className="h-3">Butler</span>
         </div>
 
-        <div className="flex items-center gap-6 md:gap-8">
-          <div className="hidden md:flex items-center gap-6">
-            {NAV_LINKS.map((l) => (
-              <a
-                key={l.label}
-                href={l.href}
-                className="body-sm text-b-text-secondary hover:text-b-text-primary transition-colors"
-              >
-                {l.label}
-              </a>
-            ))}
-          </div>
-          <div className="flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-9">
+          {NAV_LINKS.map((l) => (
             <a
-              href="/login"
-              className="body-sm text-b-text-secondary hover:text-b-text-primary transition-colors hidden sm:inline"
+              key={l.label}
+              href={l.href}
+              className="body-md-med text-b-text-secondary hover:text-b-text-primary transition-colors"
             >
-              Sign in
+              {l.label}
             </a>
-            <Button variant="accent" size="sm" onClick={onGetStarted}>
-              Get Started
-            </Button>
-          </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <a
+            href="/login"
+            className="body-md-med text-b-text-primary hover:opacity-80 transition-opacity hidden sm:inline"
+          >
+            Sign In
+          </a>
+          <Button variant="primary" size="sm" onClick={onGetStarted} className="!rounded-full">
+            Request Access
+          </Button>
         </div>
       </nav>
 
-      {/* ──── Hero ──── */}
-      <section className="px-6 pt-12 md:pt-20 pb-20 text-center max-w-4xl mx-auto">
-        <p className="label-md text-b-accent-text mb-6 tracking-widest">
-          A Digital Chief of Staff
-        </p>
+      <motion.section
+        className="px-8 lg:px-[120px] pt-16 lg:pt-[72px] pb-24 lg:pb-[120px] text-center flex flex-col items-center gap-12"
+        initial={reducedMotion ? false : "hidden"}
+        animate="show"
+        variants={{ show: { transition: { staggerChildren: 0.08 } } }}
+      >
+        <motion.div
+          variants={fadeUp}
+          className="inline-flex items-center gap-2.5 pl-3.5 pr-4 py-1.5 rounded-full bg-b-accent-soft"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-b-accent" />
+          <span className="label-md text-b-accent-text tracking-[0.08em]">
+            A DIGITAL CHIEF OF STAFF
+          </span>
+        </motion.div>
 
-        <h1>
-          <span className="display-m md:display-l lg:display-xl block">
+        <motion.h1 variants={fadeUp} className="max-w-5xl">
+          <span className="display-xl block text-b-text-primary">
             Your day, quietly
           </span>
-          <span
-            className="display-m md:display-l lg:display-xl block"
-            style={{ fontFamily: "var(--font-serif)", fontStyle: "italic" }}
-          >
-            orchestrated.
+          <span className="display-xl block">
+            <em className="display-italic text-b-accent-text not-italic" style={{ fontStyle: "italic" }}>
+              orchestrated
+            </em>
+            .
           </span>
-        </h1>
+        </motion.h1>
 
-        <p className="body-lg text-b-text-secondary mt-8 max-w-2xl mx-auto leading-relaxed">
-          Butler is your calm interface that reads, writes, and moves across your
+        <motion.p
+          variants={fadeUp}
+          className="body-lg text-b-text-secondary max-w-[760px] leading-relaxed"
+        >
+          Butler is one calm interface that reads, writes, and moves across your
           Google Workspace, GitHub, Notion, Slack, Linear, Figma — every tool
           where your work lives. It anticipates conflicts, drafts your replies,
           prepares your files, and hands you a morning brief. Not another
-          dashboard. A staff of one, always in control.
-        </p>
+          dashboard. A staff of one, always in earshot.
+        </motion.p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
-          <Button variant="primary" size="lg" onClick={onGetStarted}>
-            Begin with Butler &rarr;
+        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-3">
+          <Button variant="primary" size="lg" onClick={onGetStarted} className="!rounded-full !px-7">
+            Begin with Butler →
           </Button>
-          <Button variant="secondary" size="lg">
-            Watch the brief 2:14
+          <Button variant="secondary" size="lg" className="!rounded-full !px-7 !border-b-border-strong">
+            Watch the brief · 2:14
           </Button>
-        </div>
-      </section>
+        </motion.div>
 
-      {/* ──── Partners strip ──── */}
-      <div className="border-y border-b-border-subtle py-4 overflow-hidden">
-        <div className="flex items-center justify-center gap-8 md:gap-12 max-w-5xl mx-auto px-6 flex-wrap">
-          {PARTNERS.map((name) => (
-            <span
-              key={name}
-              className="body-sm text-b-text-tertiary whitespace-nowrap"
-            >
-              {name}
-            </span>
-          ))}
-        </div>
-      </div>
+        <motion.div variants={fadeUp} className="flex flex-col items-center gap-5 pt-4">
+          <p className="label-sm text-b-text-tertiary tracking-[0.12em]">
+            SERVING QUIET OPERATORS AT
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-2">
+            {PARTNERS.map((name) => (
+              <span key={name} className="body-md-med text-b-text-tertiary">
+                {name}
+              </span>
+            ))}
+          </div>
+        </motion.div>
+      </motion.section>
 
-      {/* ──── Command Center Preview ──── */}
-      <section className="px-6 py-20 md:py-28 max-w-5xl mx-auto">
-        <p className="label-md text-b-text-tertiary text-center mb-4 tracking-widest">
-          A Glimpse
+      <section className="px-8 lg:px-[120px] pb-24 lg:pb-[120px] max-w-[1440px] mx-auto w-full">
+        <p className="label-sm text-b-accent-text text-center mb-6 tracking-[0.12em]">
+          A GLIMPSE
         </p>
         <h2 className="display-s md:display-m text-center max-w-2xl mx-auto">
           The Command Center — your morning at a glance.
         </h2>
 
-        <div className="mt-10 md:mt-14 rounded-[20px] border border-b-border-subtle bg-b-paper p-1 shadow-xl">
-          <div className="rounded-[16px] bg-b-raised overflow-hidden">
-            <div className="flex min-h-[340px]">
-              {/* Sidebar mock */}
-              <div className="w-44 border-r border-b-border-subtle p-4 hidden md:block bg-b-paper">
-                <div className="flex items-center gap-2 mb-6">
-                  <img
-                    src="/images/logo-dark-nobg.svg"
-                    alt=""
-                    className="h-5 w-auto"
-                  />
-                  <span className="body-sm-med">Butler</span>
-                </div>
+        <div className="mt-10 md:mt-14 rounded-[28px] border border-b-border-default bg-b-paper shadow-[0_40px_80px_-20px_rgba(26,15,8,0.15)] overflow-hidden">
+          <div className="h-11 bg-b-sunken flex items-center px-4 gap-2 border-b border-b-border-subtle">
+            <span className="w-2.5 h-2.5 rounded-full bg-b-danger/80" />
+            <span className="w-2.5 h-2.5 rounded-full bg-b-warning/80" />
+            <span className="w-2.5 h-2.5 rounded-full bg-b-success/80" />
+            <span className="mono-sm text-b-text-tertiary ml-4">
+              butler.app · Good morning, Boss
+            </span>
+          </div>
+
+          <div className="flex min-h-[420px]">
+            <div className="w-[220px] border-r border-b-border-subtle p-5 hidden md:block bg-b-sunken">
+              <p className="h-3">Butler</p>
+              <p className="mono-label text-b-text-tertiary mt-0.5">chief of staff</p>
+              <div className="mt-8 space-y-2">
                 {[
-                  "Command Center",
-                  "The Brief",
-                  "Conversations",
-                  "Delegated Work",
-                  "Notifications",
-                  "Voice & Memory",
-                  "Integrations",
-                ].map((item, i) => (
+                  { label: "Command Center", active: true },
+                  { label: "The Brief", active: false },
+                  { label: "Conversations", active: false },
+                  { label: "Delegated Work", active: false },
+                  { label: "Notifications", active: false },
+                  { label: "Voice Room", active: false },
+                  { label: "Notes & Memory", active: false },
+                  { label: "Integrations", active: false },
+                ].map(({ label, active }) => (
                   <div
-                    key={item}
-                    className={`body-sm py-2 px-3 rounded-[8px] mb-0.5 ${
-                      i === 0
-                        ? "bg-b-sunken font-medium"
-                        : "text-b-text-secondary"
+                    key={label}
+                    className={`body-sm py-1.5 pl-3 border-l-2 ${
+                      active
+                        ? "border-b-accent text-b-text-primary font-medium"
+                        : "border-transparent text-b-text-secondary"
                     }`}
                   >
-                    {item}
+                    — {label}
                   </div>
                 ))}
               </div>
+            </div>
 
-              {/* Main content mock */}
-              <div className="flex-1 p-5 md:p-6">
-                <div className="flex items-start justify-between mb-1">
-                  <div>
-                    <p className="label-md text-b-text-tertiary tracking-widest">
-                      Overall
-                    </p>
-                  </div>
-                  <div className="flex gap-1">
-                    {["Overall", "Daily Briefing", "Voice"].map((tab, i) => (
-                      <span
-                        key={tab}
-                        className={`label-sm px-3 py-1 rounded-full ${
-                          i === 0
-                            ? "bg-b-ink text-b-text-inverse"
-                            : "text-b-text-tertiary"
-                        }`}
-                      >
-                        {tab}
-                      </span>
-                    ))}
-                  </div>
+            <div className="flex-1 p-6 md:p-8 bg-b-paper">
+              <h3 className="display-s">Good morning, Boss</h3>
+              <p className="body-sm text-b-text-tertiary mt-2">
+                Tuesday, 13 July · 47°F, London · 6 items need you
+              </p>
+
+              <div className="grid lg:grid-cols-[1.6fr_1fr] gap-4 mt-6">
+                <div className="rounded-[14px] border border-b-border-subtle bg-b-raised p-5 min-h-[200px]">
+                  <p className="mono-label text-b-accent-text">THE BRIEF · 07:04</p>
+                  <p className="body-md-med mt-3 text-b-text-primary">
+                    Three quiet moves before your first meeting.
+                  </p>
+                  <ul className="body-sm text-b-text-secondary mt-4 space-y-2 list-none">
+                    <li>· Kai&apos;s Slack thread on the Series-B deck is 14h stale — I drafted a reply.</li>
+                    <li>· Your 10 AM with Meridian collides with a Linear deploy window — moved to 10:45.</li>
+                    <li>· The Notion doc for tomorrow&apos;s board read is 62% ready — I marked what&apos;s missing.</li>
+                  </ul>
+                  <p className="body-sm-med text-b-accent-text mt-4">
+                    Approve all · Review each · Ask Butler
+                  </p>
                 </div>
 
-                <h3 className="display-s mt-2 mb-1">Good morning, Boss</h3>
-                <p className="body-sm text-b-text-tertiary mb-6">
-                  Here&apos;s your command center overview.
-                </p>
-
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  {[
-                    { label: "Drafts ready", value: "3" },
-                    { label: "Held for you", value: "2" },
-                    { label: "Awaiting a read", value: "7" },
-                    { label: "Focus time", value: "4h 20m" },
-                  ].map((card) => (
-                    <div
-                      key={card.label}
-                      className="p-3 rounded-[10px] bg-b-sunken"
-                    >
-                      <p className="body-xs text-b-text-tertiary">
-                        {card.label}
-                      </p>
-                      <p className="h-3 mt-1">{card.value}</p>
-                    </div>
-                  ))}
+                <div className="rounded-[14px] border border-b-border-subtle bg-b-raised p-5">
+                  <p className="mono-label text-b-text-tertiary">TODAY&apos;S FOCUS</p>
+                  <p className="display-s mt-2">4h 20m</p>
+                  <p className="body-sm text-b-text-secondary mt-1">
+                    of deep work protected
+                  </p>
                 </div>
-
-                <div className="h-px bg-b-border-subtle" />
-                <p className="body-xs text-b-text-tertiary mt-3">
-                  Your schedule, tasks, and inbox at a glance.
-                </p>
               </div>
             </div>
           </div>
