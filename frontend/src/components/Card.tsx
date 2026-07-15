@@ -8,6 +8,7 @@ type CardRadius = "sm" | "md" | "lg" | "xl" | "2xl";
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   tone?: CardTone;
   radius?: CardRadius;
+  bordered?: boolean;
   children: ReactNode;
 }
 
@@ -29,13 +30,16 @@ const radiusMap: Record<CardRadius, string> = {
 export default function Card({
   tone = "paper",
   radius = "lg",
+  bordered = true,
   children,
   className = "",
   ...props
 }: CardProps) {
+  const borderClass =
+    bordered && tone !== "ink" ? "border border-b-border-subtle" : "border border-transparent";
   return (
     <div
-      className={`border border-b-border-subtle ${toneStyles[tone]} ${radiusMap[radius]} ${className}`}
+      className={`${borderClass} ${toneStyles[tone]} ${radiusMap[radius]} ${className}`}
       {...props}
     >
       {children}
