@@ -329,3 +329,119 @@ func (r *PgSettingsRepository) Upsert(ctx context.Context, s *model.UserSettings
 	)
 	return err
 }
+
+type PgConnectionsRepository struct {
+	pool *pgxpool.Pool
+}
+
+func NewPgConnectionsRepository(pool *pgxpool.Pool) *PgConnectionsRepository {
+	return &PgConnectionsRepository{pool: pool}
+}
+
+func (r *PgConnectionsRepository) Upsert(ctx context.Context, c *model.OAuthConnection) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO oauth_connections (
+			id, user_id, provider, account_label, account_id, scopes,
+			access_token_enc, refresh_token_enc, token_type, expires_at,
+			metadata, status, last_synced_at, created_at, updated_at
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+		ON CONFLICT (user_id, provider) DO UPDATE SET
+			account_label = EXCLUDED.account_label,
+			account_id = EXCLUDED.account_id,
+			scopes = EXCLUDED.scopes,
+			access_token_enc = EXCLUDED.access_token_enc,
+			refresh_token_enc = EXCLUDED.refresh_token_enc,
+			token_type = EXCLUDED.token_type,
+			expires_at = EXCLUDED.expires_at,
+			metadata = EXCLUDED.metadata,
+			status = EXCLUDED.status,
+			last_synced_at = EXCLUDED.last_synced_at,
+			updated_at = EXCLUDED.updated_at`,
+		c.ID, c.UserID, c.Provider, c.AccountLabel, c.AccountID, c.Scopes,
+		c.AccessTokenEnc, c.RefreshTokenEnc, c.TokenType, c.ExpiresAt,
+		c.Metadata, c.Status, c.LastSyncedAt, c.CreatedAt, c.UpdatedAt,
+	)
+	return err
+}
+
+func (r *PgConnectionsRepository) GetByUserAndProvider(ctx context.Context, userID, provider string) (*model.OAuthConnection, error) {
+	c := &model.OAuthConnection{}
+	err := r.pool.QueryRow(ctx,
+		`SELECT id, user_id, provider, account_label, account_id, scopes,
+			access_token_enc, refresh_token_enc, token_type, expires_at,
+			metadata, status, last_synced_at, created_at, updated_at
+		 FROM oauth_connections WHERE user_id = $1 AND provider = $2`,
+		userID, provider,
+	).Scan(
+		&c.ID, &c.UserID, &c.Provider, &c.AccountLabel, &c.AccountID, &c.Scopes,
+		&c.AccessTokenEnc, &c.RefreshTokenEnc, &c.TokenType, &c.ExpiresAt,
+		&c.Metadata, &c.Status, &c.LastSyncedAt, &c.CreatedAt, &c.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func (r *PgConnectionsRepository) ListByUser(ctx context.Context, userID string) ([]*model.OAuthConnection, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, user_id, provider, account_label, account_id, scopes,
+			access_token_enc, refresh_token_enc, token_type, expires_at,
+			metadata, status, last_synced_at, created_at, updated_at
+		 FROM oauth_connections WHERE user_id = $1 ORDER BY updated_at DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []*model.OAuthConnection
+	for rows.Next() {
+		c := &model.OAuthConnection{}
+		if err := rows.Scan(
+			&c.ID, &c.UserID, &c.Provider, &c.AccountLabel, &c.AccountID, &c.Scopes,
+			&c.AccessTokenEnc, &c.RefreshTokenEnc, &c.TokenType, &c.ExpiresAt,
+			&c.Metadata, &c.Status, &c.LastSyncedAt, &c.CreatedAt, &c.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (r *PgConnectionsRepository) Delete(ctx context.Context, userID, provider string) error {
+	_, err := r.pool.Exec(ctx,
+		`DELETE FROM oauth_connections WHERE user_id = $1 AND provider = $2`,
+		userID, provider,
+	)
+	return err
+}
+
+func (r *PgConnectionsRepository) SaveState(ctx context.Context, s *model.OAuthState) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO oauth_states (state, user_id, provider, redirect_to, created_at, expires_at)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		s.State, s.UserID, s.Provider, s.RedirectTo, s.CreatedAt, s.ExpiresAt,
+	)
+	return err
+}
+
+func (r *PgConnectionsRepository) ConsumeState(ctx context.Context, state string) (*model.OAuthState, error) {
+	s := &model.OAuthState{}
+	err := r.pool.QueryRow(ctx,
+		`DELETE FROM oauth_states WHERE state = $1 AND expires_at > NOW()
+		 RETURNING state, user_id, provider, redirect_to, created_at, expires_at`,
+		state,
+	).Scan(&s.State, &s.UserID, &s.Provider, &s.RedirectTo, &s.CreatedAt, &s.ExpiresAt)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func (r *PgConnectionsRepository) DeleteExpiredStates(ctx context.Context) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM oauth_states WHERE expires_at <= NOW()`)
+	return err
+}

@@ -155,3 +155,62 @@ type UserInfo struct {
 	Email string
 	Name  string
 }
+
+// OAuthConnection is a persisted third-party integration connection.
+type OAuthConnection struct {
+	ID              string     `json:"id"`
+	UserID          string     `json:"userId"`
+	Provider        string     `json:"provider"`
+	AccountLabel    string     `json:"accountLabel"`
+	AccountID       string     `json:"accountId,omitempty"`
+	Scopes          string     `json:"scopes"`
+	AccessTokenEnc  string     `json:"-"`
+	RefreshTokenEnc string     `json:"-"`
+	TokenType       string     `json:"tokenType,omitempty"`
+	ExpiresAt       *time.Time `json:"expiresAt,omitempty"`
+	Metadata        []byte     `json:"metadata,omitempty"`
+	Status          string     `json:"status"`
+	LastSyncedAt    *time.Time `json:"lastSyncedAt,omitempty"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
+// OAuthState is a short-lived CSRF state for OAuth connect flows.
+type OAuthState struct {
+	State     string    `json:"state"`
+	UserID    string    `json:"userId"`
+	Provider  string    `json:"provider"`
+	RedirectTo string   `json:"redirectTo"`
+	CreatedAt time.Time `json:"createdAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+// IntegrationCatalogItem is the public view of a connector.
+type IntegrationCatalogItem struct {
+	ID           string  `json:"id"`
+	Name         string  `json:"name"`
+	Role         string  `json:"role"`
+	Scopes       string  `json:"scopes"`
+	Group        string  `json:"group"`
+	Status       string  `json:"status"` // connected | available | not_configured | coming_soon
+	AccountLabel string  `json:"accountLabel,omitempty"`
+	ConnectedAt  *string `json:"connectedAt,omitempty"`
+	LastSyncedAt *string `json:"lastSyncedAt,omitempty"`
+	AuthType     string  `json:"authType"` // oauth | client | none
+	Configured   bool    `json:"configured"`
+}
+
+// ConnectResponse is returned when starting an OAuth or client connect flow.
+type ConnectResponse struct {
+	Provider  string `json:"provider"`
+	AuthURL   string `json:"authUrl,omitempty"`
+	Mode      string `json:"mode"` // redirect | client | disabled
+	Message   string `json:"message,omitempty"`
+}
+
+// RegisterGoogleRequest stores a Google Workspace token obtained via Firebase popup.
+type RegisterGoogleRequest struct {
+	AccessToken string `json:"accessToken"`
+	Email       string `json:"email,omitempty"`
+	Scopes      string `json:"scopes,omitempty"`
+}

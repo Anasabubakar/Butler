@@ -46,3 +46,14 @@ type SettingsRepository interface {
 	Get(ctx context.Context, userID string) (*model.UserSettings, error)
 	Upsert(ctx context.Context, s *model.UserSettings) error
 }
+
+// ConnectionsRepository persists OAuth / integration connections.
+type ConnectionsRepository interface {
+	Upsert(ctx context.Context, c *model.OAuthConnection) error
+	GetByUserAndProvider(ctx context.Context, userID, provider string) (*model.OAuthConnection, error)
+	ListByUser(ctx context.Context, userID string) ([]*model.OAuthConnection, error)
+	Delete(ctx context.Context, userID, provider string) error
+	SaveState(ctx context.Context, s *model.OAuthState) error
+	ConsumeState(ctx context.Context, state string) (*model.OAuthState, error)
+	DeleteExpiredStates(ctx context.Context) error
+}
