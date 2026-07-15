@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gamp/butler/internal/config"
+	tokencrypto "github.com/gamp/butler/internal/crypto"
 	"github.com/gamp/butler/internal/gemini"
 	"github.com/gamp/butler/internal/handler"
 	"github.com/gamp/butler/internal/middleware"
@@ -65,6 +66,18 @@ func main() {
 	delegationsRepo := repository.NewPgDelegationsRepository(pool)
 	notificationsRepo := repository.NewPgNotificationsRepository(pool)
 	settingsRepo := repository.NewPgSettingsRepository(pool)
+	connectionsRepo := repository.NewPgConnectionsRepository(pool)
+
+	tokenKey := cfg.TokenEncryptionKey
+	if tokenKey == "" {
+		// Dev fallback — still encrypts, but not a secret. Set TOKEN_ENCRYPTION_KEY in production.
+		tokenKey = "butler-dev-token-key:" + cfg.FirebaseProject
+		log.Warn().Msg("TOKEN_ENCRYPTION_KEY unset; using derived development key")
+	}
+	vault, err := tokencrypto.NewTokenVault(tokenKey)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialize token vault")
+	}
 
 	geminiClient := gemini.NewClient(cfg.GeminiAPIKey)
 	liveBridge := gemini.NewLiveBridge(cfg.GeminiAPIKey)
@@ -74,6 +87,7 @@ func main() {
 	delegationsSvc := service.NewDelegationsService(delegationsRepo)
 	notificationsSvc := service.NewNotificationsService(notificationsRepo)
 	settingsSvc := service.NewSettingsService(settingsRepo)
+	integrationsSvc := service.NewIntegrationsService(connectionsRepo, vault, cfg.PublicAPIBase, cfg.AppBaseURL)
 
 	handlers := router.Handlers{
 		Butler:        handler.NewButlerHandler(chatSvc),
@@ -81,6 +95,7 @@ func main() {
 		Delegations:   handler.NewDelegationsHandler(delegationsSvc),
 		Notifications: handler.NewNotificationsHandler(notificationsSvc),
 		Settings:      handler.NewSettingsHandler(settingsSvc),
+		Integrations:  handler.NewIntegrationsHandler(integrationsSvc),
 		WS:            handler.NewWSHandler(liveBridge, firebaseAuth, cfg.CORSOrigins),
 	}
 

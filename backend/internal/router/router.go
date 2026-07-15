@@ -14,6 +14,7 @@ type Handlers struct {
 	Delegations   *handler.DelegationsHandler
 	Notifications *handler.NotificationsHandler
 	Settings      *handler.SettingsHandler
+	Integrations  *handler.IntegrationsHandler
 	WS            *handler.WSHandler
 }
 
@@ -37,8 +38,11 @@ func New(h Handlers, auth *middleware.FirebaseAuth, corsOrigins []string) chi.Ro
 
 	r.Get("/health", handler.HealthCheck)
 
-	// WebSocket endpoint (no auth — token sent in-band).
+	// WebSocket endpoint (token query param / header verified inside handler).
 	r.Get("/ws/live", h.WS.Live)
+
+	// OAuth provider callbacks (authenticated via short-lived state, not Firebase).
+	r.Get("/api/integrations/callback/{provider}", h.Integrations.Callback)
 
 	r.Route("/api", func(api chi.Router) {
 		api.Use(auth.Middleware)
@@ -74,6 +78,13 @@ func New(h Handlers, auth *middleware.FirebaseAuth, corsOrigins []string) chi.Ro
 		api.Route("/settings", func(s chi.Router) {
 			s.Get("/", h.Settings.Get)
 			s.Put("/", h.Settings.Update)
+		})
+
+		api.Route("/integrations", func(intg chi.Router) {
+			intg.Get("/", h.Integrations.List)
+			intg.Post("/google", h.Integrations.RegisterGoogle)
+			intg.Post("/{provider}/connect", h.Integrations.Connect)
+			intg.Delete("/{provider}", h.Integrations.Disconnect)
 		})
 	})
 
