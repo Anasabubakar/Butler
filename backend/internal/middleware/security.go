@@ -37,3 +37,23 @@ func RequestLogger(next http.Handler) http.Handler {
 			Str("remote", r.RemoteAddr).
 			Msg("request")
 	})
+}
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (sw *statusWriter) WriteHeader(code int) {
+	sw.status = code
+	sw.ResponseWriter.WriteHeader(code)
+}
+
+// Hijack preserves WebSocket upgrades when ResponseWriter is wrapped.
+func (sw *statusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := sw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("response writer does not support hijacking")
+	}
+	return h.Hijack()
+}
