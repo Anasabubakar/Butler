@@ -43,3 +43,25 @@ func NewFirebaseAuth(projectID string) (*FirebaseAuth, error) {
 
 	return &FirebaseAuth{client: client}, nil
 }
+
+func (fa *FirebaseAuth) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := extractBearer(r)
+		if token == "" {
+			http.Error(w, `{"error":"missing authorization header"}`, http.StatusUnauthorized)
+			return
+		}
+
+		uid, err := fa.VerifyToken(r.Context(), token)
+		if err != nil {
+			log.Warn().Err(err).Msg("auth: invalid token")
+			http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), userIDKey, uid)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// VerifyToken validates a Firebase ID token and returns the UID.
