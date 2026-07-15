@@ -115,3 +115,32 @@ type analyzeRequest struct {
 	MIMEType   string `json:"mimeType"`
 	Prompt     string `json:"prompt,omitempty"`
 }
+
+type analyzeResponse struct {
+	Text string `json:"text"`
+}
+
+// Analyze handles POST /api/butler/analyze.
+func (h *ButlerHandler) Analyze(w http.ResponseWriter, r *http.Request) {
+	var req analyzeRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 50<<20)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.FileBase64 == "" || req.MIMEType == "" {
+		writeError(w, http.StatusBadRequest, "fileBase64 and mimeType are required")
+		return
+	}
+
+	text, err := h.chatService.Analyze(r.Context(), req.FileBase64, req.MIMEType, req.Prompt)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, analyzeResponse{Text: text})
+}
+
+// ListThreads handles GET /api/butler/threads.
+func (h *ButlerHandler) ListThreads(w http.ResponseWriter, r *http.Request) {
