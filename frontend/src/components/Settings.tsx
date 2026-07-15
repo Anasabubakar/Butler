@@ -142,3 +142,51 @@ export default function Settings({
                   {user?.displayName || "Boss"}
                 </div>
                 <div className="body-sm mt-1 text-b-text-tertiary">
+                  {user?.email || "—"}
+                </div>
+                <div className="mono-sm mt-1 text-b-text-tertiary">
+                  Google Workspace · {hasWorkspace ? "connected" : "not connected"}
+                </div>
+              </div>
+              <div className="flex-1" />
+              <div className="flex gap-2">
+                {!hasWorkspace && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleReconnect}
+                    disabled={reconnecting}
+                  >
+                    {reconnecting ? "Connecting…" : "Connect Workspace"}
+                  </Button>
+                )}
+                <Button variant="secondary" size="sm" onClick={onSignOut}>
+                  Sign out
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <Card tone="paper" className="p-6">
+            <div className="mono-label mb-1 text-b-accent-text">Voice tone</div>
+            <div className="body-sm mb-6 text-b-text-tertiary">
+              How Butler writes and speaks on your behalf.
+            </div>
+
+            {loading ? (
+              <p className="body-sm text-b-text-tertiary animate-pulse">Loading…</p>
+            ) : (
+              <div className="flex flex-col gap-6">
+                <SliderRow
+                  label="Warmth"
+                  value={warmth}
+                  onChange={setWarmth}
+                  low="Clinical"
+                  high="Warm"
+                />
+                <SliderRow
+                  label="Formality"
+                  value={formality}
+                  onChange={setFormality}
+                  low="Casual"
+                  high="Formal"
