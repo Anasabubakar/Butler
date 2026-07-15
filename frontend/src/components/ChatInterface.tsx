@@ -133,3 +133,48 @@ export default function ChatInterface() {
         role: "model",
         text: res.text,
         mode,
+        timestamp: new Date().toISOString(),
+        groundingSources: res.groundingSources,
+      };
+      setMessages((prev) => [...prev, botMsg]);
+      await loadThreads();
+    } catch (err: unknown) {
+      const errMsg: Message = {
+        id: crypto.randomUUID(),
+        role: "model",
+        text: `Sorry Boss, something went wrong: ${err instanceof Error ? err.message : "Unknown error"}`,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
+      setSending(false);
+    }
+  }, [input, mode, threadId, sending, loadThreads]);
+
+  return (
+    <div className="h-full flex bg-b-canvas overflow-hidden">
+      <aside className="w-[280px] shrink-0 flex flex-col border-r border-b-border-subtle bg-b-sunken">
+        <div className="px-5 pt-7 pb-4">
+          <h2 className="type-h3 text-b-text-primary">Conversations</h2>
+          <p className="mono-sm text-b-text-tertiary mt-1">
+            {loadingThreads
+              ? "Loading…"
+              : `${threads.length} thread${threads.length === 1 ? "" : "s"} · with Butler`}
+          </p>
+        </div>
+
+        <div className="px-5 pb-3">
+          <button
+            type="button"
+            onClick={startNewThread}
+            className="w-full flex items-center justify-center px-4 py-2.5 rounded-full bg-b-ink text-b-text-inverse body-sm-med hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            + Begin a new thread
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-5 flex flex-col gap-1">
+          {loadingThreads && (
+            <p className="body-sm text-b-text-tertiary px-2 py-3 animate-pulse">Loading conversations…</p>
+          )}
+          {!loadingThreads && threads.length === 0 && (
