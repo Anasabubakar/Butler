@@ -345,3 +345,52 @@ export default function CommandCenter({
             <div className="flex flex-col gap-2.5">
               {tasks.filter((t) => t.status !== "completed").length === 0 && (
                 <p className="body-sm text-b-text-tertiary">
+                  {hasWorkspace ? "No open tasks." : "Connect Tasks to load your list."}
+                </p>
+              )}
+              {tasks
+                .filter((t) => t.status !== "completed")
+                .slice(0, 5)
+                .map((t) => (
+                  <div key={t.id} className="flex items-start gap-2">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-b-accent shrink-0" />
+                    <span className="body-sm text-b-text-primary">{t.title}</span>
+                  </div>
+                ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RouterRow({ model, task }: { model: string; task: string }) {
+  return (
+    <div className="flex items-baseline gap-3">
+      <span className="body-sm-med w-16 text-b-text-primary">{model}</span>
+      <span className="body-sm text-b-text-tertiary">{task}</span>
+    </div>
+  );
+}
+
+function IntegrationRow({
+  name,
+  state,
+}: {
+  name: string;
+  state: "connected" | "available" | "soon";
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="body-sm-med text-b-text-primary">{name}</span>
+      <span
+        className={`mono-label ${
+          state === "connected"
+            ? "text-b-success"
+            : state === "available"
+            ? "text-b-warning"
+            : "text-b-text-tertiary"
+        }`}
+      >
+        {state === "connected" ? "live" : state === "available" ? "connect" : "soon"}
