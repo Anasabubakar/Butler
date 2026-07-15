@@ -88,3 +88,48 @@ export default function ChatInterface() {
     setActiveThreadId("new");
     setMessages([]);
     setThreadId(undefined);
+    setInput("");
+    setError(null);
+  };
+
+  const selectThread = async (id: string) => {
+    setActiveThreadId(id);
+    setThreadId(id);
+    setLoadingMessages(true);
+    setError(null);
+    try {
+      const data = await api.chat.messages(id);
+      setMessages(data.map(normalizeMessage));
+    } catch (err) {
+      setMessages([]);
+      setError(err instanceof Error ? err.message : "Failed to load messages");
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  const send = useCallback(async () => {
+    const text = input.trim();
+    if (!text || sending) return;
+
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      text,
+      mode,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setSending(true);
+    setError(null);
+
+    try {
+      const res = await api.butler.chat({ text, mode, threadId });
+      setThreadId(res.threadId);
+      setActiveThreadId(res.threadId);
+      const botMsg: Message = {
+        id: crypto.randomUUID(),
+        role: "model",
+        text: res.text,
+        mode,
