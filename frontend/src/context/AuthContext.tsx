@@ -42,3 +42,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsub = initAuth(
       (firebaseUser, idToken) => {
+        setUser(firebaseUser);
+        setAccessToken(idToken);
+        setHasWorkspace(hasGoogleWorkspace());
+        setLoading(false);
+      },
+      () => {
+        setUser(null);
+        setAccessToken(null);
+        setHasWorkspace(false);
+        setLoading(false);
+      },
+      () => {
+        setUser(null);
+        setAccessToken(null);
+        setHasWorkspace(false);
+        setLoading(false);
+      }
+    );
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
+  }, []);
