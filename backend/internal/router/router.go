@@ -39,3 +39,23 @@ func New(h Handlers, auth *middleware.FirebaseAuth, corsOrigins []string) chi.Ro
 
 	// WebSocket endpoint (no auth — token sent in-band).
 	r.Get("/ws/live", h.WS.Live)
+
+	r.Route("/api", func(api chi.Router) {
+		api.Use(auth.Middleware)
+
+		api.Route("/butler", func(butler chi.Router) {
+			butler.Post("/chat", h.Butler.Chat)
+			butler.Post("/transcribe", h.Butler.Transcribe)
+			butler.Post("/analyze", h.Butler.Analyze)
+			butler.Get("/threads", h.Butler.ListThreads)
+			butler.Get("/threads/{id}/messages", h.Butler.ListMessages)
+		})
+
+		api.Route("/notes", func(notes chi.Router) {
+			notes.Get("/", h.Notes.List)
+			notes.Post("/", h.Notes.Create)
+			notes.Put("/{id}", h.Notes.Update)
+			notes.Delete("/{id}", h.Notes.Delete)
+		})
+
+		api.Route("/delegations", func(del chi.Router) {
