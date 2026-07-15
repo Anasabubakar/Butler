@@ -119,3 +119,27 @@ export const api = {
         `/api/notifications${source ? `?source=${source}` : ""}`
       ),
 
+    markRead: (id: string) =>
+      request<void>(`/api/notifications/${id}/read`, { method: "POST" }),
+
+    markAllRead: () =>
+      request<void>("/api/notifications/read-all", { method: "POST" }),
+  },
+
+  settings: {
+    get: () => request<UserSettings>("/api/settings"),
+
+    update: (data: Partial<UserSettings>) =>
+      request<UserSettings>("/api/settings", {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+  },
+
+  chat: {
+    threads: () => requestArray<ChatThread>("/api/butler/threads"),
+
+    messages: (threadId: string) =>
+      requestArray<Message>(`/api/butler/threads/${threadId}/messages`),
+  },
+};
