@@ -45,3 +45,26 @@ function buildProvider() {
   provider.addScope("https://www.googleapis.com/auth/drive");
   provider.addScope("https://www.googleapis.com/auth/calendar");
   provider.addScope("https://www.googleapis.com/auth/gmail.modify");
+  provider.addScope("https://www.googleapis.com/auth/tasks");
+  provider.addScope("https://www.googleapis.com/auth/contacts.readonly");
+  provider.setCustomParameters({ prompt: "select_account" });
+  return provider;
+}
+
+function persistGoogleToken(token: string | null) {
+  if (typeof window === "undefined") return;
+  if (token) {
+    sessionStorage.setItem(GOOGLE_TOKEN_KEY, token);
+  } else {
+    sessionStorage.removeItem(GOOGLE_TOKEN_KEY);
+  }
+}
+
+function readPersistedGoogleToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem(GOOGLE_TOKEN_KEY);
+}
+
+/** Google OAuth access token for Workspace APIs (Calendar, Gmail, Tasks, Drive). */
+export function getAccessToken(): string | null {
+  return readPersistedGoogleToken();
