@@ -64,3 +64,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof unsub === "function") unsub();
     };
   }, []);
+
+  const signIn = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { user: firebaseUser } = await googleSignIn();
+      const idToken = await firebaseUser.getIdToken();
+      setUser(firebaseUser);
+      setAccessToken(idToken);
+      setHasWorkspace(hasGoogleWorkspace());
+    } catch (error) {
+      console.error("Sign-in failed:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try {
+      await logout();
+      setUser(null);
+      setAccessToken(null);
