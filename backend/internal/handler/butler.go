@@ -86,3 +86,32 @@ type transcribeRequest struct {
 
 type transcribeResponse struct {
 	Text string `json:"text"`
+}
+
+// Transcribe handles POST /api/butler/transcribe.
+func (h *ButlerHandler) Transcribe(w http.ResponseWriter, r *http.Request) {
+	var req transcribeRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 50<<20)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.AudioBase64 == "" || req.MIMEType == "" {
+		writeError(w, http.StatusBadRequest, "audioBase64 and mimeType are required")
+		return
+	}
+
+	text, err := h.chatService.Transcribe(r.Context(), req.AudioBase64, req.MIMEType)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, transcribeResponse{Text: text})
+}
+
+type analyzeRequest struct {
+	FileBase64 string `json:"fileBase64"`
+	MIMEType   string `json:"mimeType"`
+	Prompt     string `json:"prompt,omitempty"`
+}
