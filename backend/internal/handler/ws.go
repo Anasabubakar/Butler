@@ -55,3 +55,21 @@ func (h *WSHandler) Live(w http.ResponseWriter, r *http.Request) {
 			for _, o := range h.origins {
 				if strings.TrimSpace(o) == origin || strings.TrimSpace(o) == "*" {
 					return true
+				}
+			}
+			// Allow same-host local dev defaults.
+			return strings.Contains(origin, "localhost") || strings.Contains(origin, "127.0.0.1")
+		},
+	}
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("ws: upgrade failed")
+		return
+	}
+	defer conn.Close()
+
+	if err := h.liveBridge.Connect(conn); err != nil {
+		log.Error().Err(err).Msg("ws: live bridge error")
+	}
+}
