@@ -185,3 +185,40 @@ export default function Integrations({ hasWorkspace, onConnectWorkspace }: Integ
           {(
             [
               ["all", `All · ${resolved.length}`],
+              ["connected", `Connected · ${connected.length}`],
+              ["available", `Available · ${available.length}`],
+              ["coming_soon", `Coming soon · ${coming.length}`],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className="pb-3 relative"
+              style={{
+                color: tab === key ? "var(--color-b-text-primary)" : "var(--color-b-text-tertiary)",
+              }}
+            >
+              <span className="body-md-med">{label}</span>
+              {tab === key && (
+                <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-b-accent" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-8 mb-2">
+          <div className="mono-label text-b-accent-text">Your household</div>
+          <h2 className="type-h3 mt-1 text-b-text-primary">
+            {hasWorkspace
+              ? `${connected.length} Google services speak to Butler.`
+              : "Connect Google Workspace to unlock calendar, mail, tasks, and files."}
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
+          {list.map((s) => (
+            <ServiceCard
+              key={s.id}
+              svc={s}
+              connecting={connecting}
