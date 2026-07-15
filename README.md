@@ -77,7 +77,22 @@ DATABASE_URL=postgres://user:pass@host:5432/butler
 FIREBASE_PROJECT_ID=...
 GEMINI_API_KEY=...          # server-side only
 CORS_ORIGINS=https://your-vercel-domain.vercel.app
+APP_BASE_URL=https://your-frontend-domain
+PUBLIC_API_BASE=https://your-api-domain
+TOKEN_ENCRYPTION_KEY=long-random-secret
+
+# Optional OAuth apps (Integrations page)
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+SLACK_CLIENT_ID=
+SLACK_CLIENT_SECRET=
+NOTION_CLIENT_ID=
+NOTION_CLIENT_SECRET=
+LINEAR_CLIENT_ID=
+LINEAR_CLIENT_SECRET=
 ```
+
+Google Workspace connects via Firebase popup on the client, then the access token is vaulted server-side (`POST /api/integrations/google`). GitHub / Slack / Notion / Linear use standard OAuth when their client credentials are set.
 
 ---
 
