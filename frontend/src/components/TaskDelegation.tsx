@@ -174,67 +174,82 @@ export default function TaskDelegation() {
   };
 
   const handleReject = async (id: string) => {
+    if (id.startsWith("demo-")) return;
     try {
       await api.delegations.reject(id);
       fetchItems();
     } catch {}
   };
 
+  const showDemo = !loading && items.length === 0;
+  const awaitingItems = showDemo ? DEMO_AWAITING : items.filter((d) => d.status === "awaiting");
+  const inflightItems = showDemo
+    ? DEMO_INFLIGHT
+    : items.filter((d) => d.status === "in_flight");
+
   return (
-    <div className="h-full flex flex-col bg-b-canvas">
-      <header className="px-6 py-4 border-b border-b-border-subtle">
-        <h2 className="heading-md">Task Delegation</h2>
-        <div className="flex gap-1.5 mt-3">
-          {["awaiting", "approved", "rejected"].map((s) => (
-            <Chip
-              key={s}
-              tone={filter === s ? "ink" : "neutral"}
-              variant={filter === s ? "solid" : "soft"}
-              className="cursor-pointer capitalize"
-              onClick={() => setFilter(s)}
+    <div className="h-full overflow-y-auto bg-b-canvas">
+      <div className="px-14 pt-14 pb-14 max-w-[1400px]">
+        <h1 className="display-s text-b-text-primary">Delegated Work</h1>
+        <p className="body-lg mt-4 text-b-text-secondary">
+          Butler is drafting these on your behalf. You approve; it acts.
+        </p>
+
+        <div className="flex flex-wrap gap-2 mt-8">
+          {FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`px-3.5 py-2 rounded-full mono-label transition-colors cursor-pointer ${
+                filter === key
+                  ? "bg-b-ink text-b-text-inverse"
+                  : "border border-b-border-default text-b-text-secondary hover:text-b-text-primary"
+              }`}
             >
-              {s}
-            </Chip>
+              {label}
+            </button>
           ))}
         </div>
-      </header>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
         {loading ? (
-          <p className="body-sm text-b-text-tertiary animate-pulse">Loading...</p>
-        ) : items.length === 0 ? (
-          <p className="body-sm text-b-text-secondary">No delegations yet, Boss.</p>
+          <p className="body-sm text-b-text-tertiary mt-10 animate-pulse">Loading…</p>
         ) : (
-          items.map((d) => (
-            <Card key={d.id} tone="raised" className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="heading-sm truncate">{d.title}</h3>
-                    <Chip tone={d.tone} variant="soft">
-                      {d.toneLabel}
-                    </Chip>
-                  </div>
-                  <p className="body-xs text-b-text-secondary mt-1 capitalize">
-                    {d.service}
-                  </p>
-                  <p className="body-sm text-b-text-primary mt-2 line-clamp-2">
-                    {d.draft}
-                  </p>
-                </div>
+          <div className="mt-10 grid lg:grid-cols-2 gap-10">
+            <div>
+              <p className="mono-label text-b-accent-text mb-4">
+                AWAITING YOUR NOD · {awaitingItems.length}
+              </p>
+              <div className="flex flex-col gap-4">
+                {awaitingItems.length === 0 ? (
+                  <p className="body-sm text-b-text-secondary">Nothing awaiting approval.</p>
+                ) : (
+                  awaitingItems.map((d) => (
+                    <DelegationCard
+                      key={d.id}
+                      item={d}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                    />
+                  ))
+                )}
               </div>
-              {d.status === "awaiting" && (
-                <div className="flex gap-2 mt-3 pt-3 border-t border-b-border-subtle">
-                  <Button variant="accent" size="sm" onClick={() => handleApprove(d.id)}>
-                    Approve
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleReject(d.id)}>
-                    Reject
-                  </Button>
-                </div>
-              )}
-            </Card>
-          ))
+            </div>
+
+            <div>
+              <p className="mono-label text-b-text-tertiary mb-4">
+                IN FLIGHT · {inflightItems.length || (showDemo ? 0 : "—")}
+              </p>
+              <div className="flex flex-col gap-4">
+                {(showDemo ? inflightItems : []).map((d) => (
+                  <DelegationCard key={d.id} item={d} />
+                ))}
+                {!showDemo && inflightItems.length === 0 && (
+                  <p className="body-sm text-b-text-secondary">No tasks in flight.</p>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
