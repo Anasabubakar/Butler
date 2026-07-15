@@ -111,3 +111,40 @@ export default function TaskDelegation() {
   };
 
   const handleReject = async (id: string) => {
+    setBusyId(id);
+    try {
+      await api.delegations.reject(id);
+      await fetchItems();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Reject failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!form.title.trim()) return;
+    try {
+      await api.delegations.create({
+        title: form.title.trim(),
+        service: form.service,
+        context: form.context.trim(),
+        draft: form.draft.trim(),
+        tone: "accent",
+        toneLabel: "draft",
+      });
+      setForm({ title: "", service: "Gmail", context: "", draft: "" });
+      setShowCreate(false);
+      setFilter("awaiting");
+      await fetchItems();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Create failed");
+    }
+  };
+
+  const filters: Array<{ key: FilterKey; label: string }> = [
+    { key: "awaiting", label: `Awaiting · ${items.filter((d) => d.status === "awaiting").length || (filter === "awaiting" ? items.length : "—")}` },
+    { key: "in_flight", label: "In flight" },
+    { key: "approved", label: "Approved" },
+    { key: "rejected", label: "Rejected" },
+    { key: "all", label: "All" },
