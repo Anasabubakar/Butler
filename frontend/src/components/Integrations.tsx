@@ -259,3 +259,40 @@ function ServiceCard({
               .map((w) => w[0])
               .join("")
               .slice(0, 2)
+              .toUpperCase()}
+          </span>
+        </div>
+        <span
+          aria-label={isConnected ? "Connected" : isComing ? "Coming soon" : "Available"}
+          className="w-2 h-2 rounded-full"
+          style={{
+            background: isConnected
+              ? "var(--color-b-success)"
+              : isComing
+              ? "var(--color-b-text-tertiary)"
+              : "var(--color-b-warning)",
+          }}
+        />
+      </div>
+      <div className="flex-1 flex flex-col gap-1.5">
+        <div className="type-h4 text-b-text-primary">{svc.name}</div>
+        <div className="mono-sm text-b-text-tertiary">{svc.role}</div>
+        <div className="body-sm text-b-text-secondary">{svc.scopes}</div>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="mono-label text-b-text-tertiary">
+          {isConnected ? `sync · ${svc.sync}` : isComing ? "roadmap" : "not connected"}
+        </span>
+        {isConnected ? (
+          <span className="mono-label text-b-success">Connected</span>
+        ) : isComing ? (
+          <span className="mono-label text-b-text-tertiary">Soon</span>
+        ) : (
+          <Button size="sm" variant="primary" onClick={onAction} disabled={connecting}>
+            {connecting ? "…" : "Connect"}
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
