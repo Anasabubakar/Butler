@@ -20,3 +20,25 @@ import {
 
 interface AuthContextValue {
   user: User | null;
+  /** Firebase ID token — used for Butler API Authorization. */
+  accessToken: string | null;
+  /** Whether a Google OAuth access token is available for Workspace APIs. */
+  hasWorkspace: boolean;
+  loading: boolean;
+  signIn: () => Promise<void>;
+  signOut: () => Promise<void>;
+  reconnectWorkspace: () => Promise<boolean>;
+  getGoogleAccessToken: () => string | null;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [hasWorkspace, setHasWorkspace] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = initAuth(
+      (firebaseUser, idToken) => {
