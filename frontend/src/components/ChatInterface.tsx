@@ -43,3 +43,48 @@ function normalizeMessage(raw: Message): Message {
     ...raw,
     role: raw.role === "user" ? "user" : "model",
     timestamp: raw.timestamp || raw.createdAt || new Date().toISOString(),
+  };
+}
+
+export default function ChatInterface() {
+  const reducedMotion = usePrefersReducedMotion();
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | "new">("new");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [mode, setMode] = useState<ChatMode>("general");
+  const [threadId, setThreadId] = useState<string | undefined>();
+  const [sending, setSending] = useState(false);
+  const [loadingThreads, setLoadingThreads] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const activeThread = threads.find((t) => t.id === activeThreadId);
+
+  const loadThreads = useCallback(async () => {
+    setLoadingThreads(true);
+    setError(null);
+    try {
+      const data = await api.chat.threads();
+      setThreads(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load conversations");
+      setThreads([]);
+    } finally {
+      setLoadingThreads(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadThreads();
+  }, [loadThreads]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, sending]);
+
+  const startNewThread = () => {
+    setActiveThreadId("new");
+    setMessages([]);
+    setThreadId(undefined);
