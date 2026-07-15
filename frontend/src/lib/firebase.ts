@@ -22,3 +22,26 @@ const GOOGLE_TOKEN_KEY = "butler_google_access_token";
 
 let app: FirebaseApp | null = null;
 let authInstance: Auth | null = null;
+
+function getFirebaseApp(): FirebaseApp | null {
+  if (!firebaseConfig.apiKey) return null;
+  if (app) return app;
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  return app;
+}
+
+function getFirebaseAuth(): Auth | null {
+  if (authInstance) return authInstance;
+  const firebaseApp = getFirebaseApp();
+  if (!firebaseApp) return null;
+  authInstance = getAuth(firebaseApp);
+  return authInstance;
+}
+
+export const auth = (typeof window !== "undefined" ? getFirebaseAuth() : null) as Auth;
+
+function buildProvider() {
+  const provider = new GoogleAuthProvider();
+  provider.addScope("https://www.googleapis.com/auth/drive");
+  provider.addScope("https://www.googleapis.com/auth/calendar");
+  provider.addScope("https://www.googleapis.com/auth/gmail.modify");
