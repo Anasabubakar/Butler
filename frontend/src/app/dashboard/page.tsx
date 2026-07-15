@@ -63,3 +63,35 @@ export default function DashboardHome() {
                 maxResults: "10",
                 singleEvents: "true",
                 orderBy: "startTime",
+              }),
+            { headers }
+          ),
+          fetch(
+            "https://tasks.googleapis.com/tasks/v1/lists/@default/tasks?" +
+              new URLSearchParams({
+                maxResults: "20",
+                showCompleted: "false",
+              }),
+            { headers }
+          ),
+          fetch(
+            "https://gmail.googleapis.com/gmail/v1/users/me/messages?" +
+              new URLSearchParams({
+                maxResults: "10",
+                q: "is:inbox",
+              }),
+            { headers }
+          ),
+        ]);
+
+        if (calRes.status === "fulfilled" && calRes.value.ok) {
+          const data = await calRes.value.json();
+          setEvents(
+            ((data.items || []) as GoogleCalendarEvent[]).map((e) => ({
+              id: e.id,
+              summary: e.summary || "(No title)",
+              start: e.start?.dateTime || e.start?.date || "",
+              end: e.end?.dateTime || e.end?.date || "",
+              description: e.description,
+              location: e.location,
+            }))
