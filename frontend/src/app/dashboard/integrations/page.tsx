@@ -5,3 +5,10 @@ import Integrations from "@/components/Integrations";
 
 export default function IntegrationsPage() {
   const { hasWorkspace, reconnectWorkspace } = useAuth();
+  return (
+    <Integrations
+      hasWorkspace={hasWorkspace}
+      onConnectWorkspace={reconnectWorkspace}
+    />
+  );
+}
