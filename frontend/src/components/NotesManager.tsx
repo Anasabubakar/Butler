@@ -193,3 +193,35 @@ export default function NotesManager() {
                   <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
+                      onClick={() => openEdit(note)}
+                      className="px-2 py-1 rounded-[6px] bg-b-raised/90 mono-label text-b-text-secondary hover:text-b-text-primary cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => remove(note.id)}
+                      className="px-2 py-1 rounded-[6px] bg-b-raised/90 mono-label text-b-danger cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+
+        {showEditor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-b-ink/40 p-6">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="memory-editor-title"
+              className="w-full max-w-lg rounded-[14px] bg-b-paper border border-b-border-subtle p-6 shadow-xl"
+            >
+              <h2 id="memory-editor-title" className="type-h3 mb-4">
+                {editing ? "Edit memory" : "Add a memory"}
+              </h2>
+              <input
+                value={title}
