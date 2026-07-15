@@ -96,3 +96,35 @@ export default function NotesManager() {
           content,
           color: "#F5EFE6",
           tag,
+        });
+      }
+      setShowEditor(false);
+      setEditing(null);
+      await fetchNotes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!window.confirm("Delete this memory?")) return;
+    try {
+      await api.notes.delete(id);
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete");
+    }
+  };
+
+  return (
+    <div className="h-full overflow-y-auto bg-b-canvas">
+      <div className="px-14 pt-14 pb-14">
+        <div className="flex items-start justify-between gap-4 max-w-[1400px]">
+          <div>
+            <h1 className="display-s text-b-text-primary">Notes &amp; Memory</h1>
+            <p className="body-lg mt-4 text-b-text-secondary">
+              What Butler has learned, and what you&apos;ve told it to remember.
+            </p>
+          </div>
