@@ -65,12 +65,10 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
 
       ws.onopen = () => {
         setState("listening");
-
         const source = audioCtx.createMediaStreamSource(stream);
         const processor = audioCtx.createScriptProcessor(4096, 1, 1);
         source.connect(processor);
         processor.connect(audioCtx.destination);
-
         processor.onaudioprocess = (e) => {
           if (ws.readyState !== WebSocket.OPEN) return;
           const pcm = e.inputBuffer.getChannelData(0);
@@ -93,9 +91,7 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
         } else {
           setState("speaking");
           const arrayBuffer =
-            event.data instanceof Blob
-              ? await event.data.arrayBuffer()
-              : event.data;
+            event.data instanceof Blob ? await event.data.arrayBuffer() : event.data;
           try {
             const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
             const bufferSource = audioCtx.createBufferSource();
