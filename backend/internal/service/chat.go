@@ -97,3 +97,36 @@ func (s *ChatService) SendMessage(ctx context.Context, userID string, req ChatRe
 	}
 
 	messages := make([]model.Message, 0, len(history))
+	for _, m := range history {
+		messages = append(messages, model.Message{
+			Role: m.Role,
+			Text: m.Text,
+		})
+	}
+
+	// Call Gemini.
+	mode := req.Mode
+	if mode == "" {
+		mode = model.ChatModeGeneral
+	}
+
+	geminiResp, err := s.geminiClient.Chat(ctx, messages, mode, req.Lat, req.Lng)
+	if err != nil {
+		return nil, fmt.Errorf("chat: gemini call: %w", err)
+	}
+
+	// Save model response.
+	modelMsg := &model.ChatMessage{
+		ID:        uuid.New().String(),
+		ThreadID:  threadID,
+		Role:      "model",
+		Text:      geminiResp.Text,
+		Mode:      mode,
+		CreatedAt: time.Now().UTC(),
+	}
+	if err := s.chatRepo.CreateMessage(ctx, modelMsg); err != nil {
+		return nil, fmt.Errorf("chat: save model message: %w", err)
+	}
+
+	// Update thread metadata.
+	thread, _ := s.chatRepo.GetThread(ctx, threadID)
