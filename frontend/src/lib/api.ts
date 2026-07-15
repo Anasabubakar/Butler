@@ -71,3 +71,27 @@ export const api = {
       content: string;
       color?: string;
       tag?: string;
+    }) =>
+      request<Note>("/api/notes", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    update: (id: string, data: Partial<Pick<Note, "title" | "content" | "color" | "tag">>) =>
+      request<Note>(`/api/notes/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id: string) =>
+      request<void>(`/api/notes/${id}`, { method: "DELETE" }),
+  },
+
+  delegations: {
+    list: (status?: string) =>
+      requestArray<Delegation>(
+        `/api/delegations${status ? `?status=${status}` : ""}`
+      ),
+
+    create: (data: {
+      title: string;
