@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
 import type { Message, ChatMode } from "@/types";
-import Button from "./Button";
-import Chip from "./Chip";
+import ButlerLogo from "./ButlerLogo";
+import { fadeUp, usePrefersReducedMotion } from "@/lib/motion";
 
 const MODES: { key: ChatMode; label: string }[] = [
   { key: "general", label: "General" },
@@ -14,17 +15,99 @@ const MODES: { key: ChatMode; label: string }[] = [
   { key: "maps", label: "Maps" },
 ];
 
+type ThreadBadge = "draft" | "done" | "note" | "held";
+
+interface Thread {
+  id: string;
+  title: string;
+  subtitle: string;
+  time: string;
+  badge?: ThreadBadge;
+}
+
+const THREADS: Thread[] = [
+  { id: "series-b", title: "Series-B deck edits", subtitle: "with Kai · draft ready", time: "2m", badge: "draft" },
+  { id: "meridian", title: "Meridian reschedule", subtitle: "moved to 10:45", time: "1h", badge: "done" },
+  { id: "board-pack", title: "Board pack, week 28", subtitle: "62% ready", time: "3h", badge: "note" },
+  { id: "notion-q3", title: "Notion: Q3 rituals", subtitle: "outline drafted", time: "5h", badge: "draft" },
+  { id: "nyc-route", title: "Location: NYC route", subtitle: "Wed 22 July · JFK → hotel", time: "1d", badge: "held" },
+  { id: "legal-nadia", title: "Legal — Nadia", subtitle: "contract sig · terms", time: "2d", badge: "draft" },
+  { id: "fitness", title: "Fitness rhythm", subtitle: "morning walk logged", time: "3d", badge: "note" },
+];
+
+const BADGE_STYLES: Record<ThreadBadge, string> = {
+  draft: "bg-b-accent-soft text-b-accent-text",
+  done: "bg-b-success-soft text-b-success",
+  note: "bg-b-sunken text-b-text-tertiary",
+  held: "bg-b-warning-soft text-b-warning",
+};
+
+const SERIES_B_INTRO = `Good morning, Boss. Overnight, Kai sent through the draft slides for the Series-B deck — v9. I read the whole thing and the feedback in the Slack thread. A few observations:
+
+· Slide 4 (traction) and slide 7 (moat) both open with the same graph. Kai flagged this — I've prepared two alternatives.
+· The revenue line on slide 3 uses last quarter's number. I updated it against the latest analyst report and re-cited.
+· Slide 12 (team) needs Nadia added — I have a placeholder ready.
+
+I've drafted a reply to Kai. It's dry, warm, one paragraph — in your voice.`;
+
+const MODE_LABELS: Record<ChatMode, string> = {
+  general: "General",
+  "low-latency": "Gemini Flash",
+  thinking: "Claude · Thinking mode",
+  search: "Search mode",
+  maps: "Maps mode",
+};
+
 export default function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const reducedMotion = usePrefersReducedMotion();
+  const [activeThread, setActiveThread] = useState("series-b");
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "intro",
+      role: "model",
+      text: SERIES_B_INTRO,
+      mode: "thinking",
+      timestamp: new Date().toISOString(),
+    },
+  ]);
   const [input, setInput] = useState("");
-  const [mode, setMode] = useState<ChatMode>("general");
+  const [mode, setMode] = useState<ChatMode>("thinking");
   const [threadId, setThreadId] = useState<string | undefined>();
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const thread = THREADS.find((t) => t.id === activeThread) ?? THREADS[0];
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  const startNewThread = () => {
+    setActiveThread("new");
+    setMessages([]);
+    setThreadId(undefined);
+    setInput("");
+  };
+
+  const selectThread = (id: string) => {
+    setActiveThread(id);
+    setThreadId(undefined);
+    if (id === "series-b") {
+      setMessages([
+        {
+          id: "intro",
+          role: "model",
+          text: SERIES_B_INTRO,
+          mode: "thinking",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      setMode("thinking");
+    } else {
+      setMessages([]);
+      setMode("general");
+    }
+  };
 
   const send = useCallback(async () => {
     const text = input.trim();
