@@ -223,3 +223,48 @@ export default function ChatInterface() {
               ●
             </span>
             <span className="mono-label text-b-text-secondary">{MODE_LABELS[mode]}</span>
+          </div>
+        </header>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-10 py-6">
+          {loadingMessages && (
+            <p className="body-sm text-b-text-tertiary animate-pulse">Loading messages…</p>
+          )}
+
+          {!loadingMessages && messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <ButlerLogo size={48} variant="dark" />
+              <p className="type-h3 text-b-text-secondary mt-4">What can I help you with, Boss?</p>
+              <p className="body-sm text-b-text-tertiary mt-2 max-w-md">
+                Ask about your calendar, draft a reply, research something, or just think out loud.
+              </p>
+            </div>
+          )}
+
+          {error && messages.length === 0 && (
+            <p className="body-sm text-b-danger mb-4" role="alert">
+              {error}
+            </p>
+          )}
+
+          <AnimatePresence initial={false}>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className={`mb-6 ${msg.role === "user" ? "flex justify-end" : ""}`}
+              >
+                {msg.role === "model" ? (
+                  <div className="flex gap-3 max-w-[720px]">
+                    <div className="w-8 h-8 shrink-0 rounded-[8px] bg-b-accent-soft flex items-center justify-center overflow-hidden">
+                      <ButlerLogo size={24} variant="dark" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="mono-label text-b-text-tertiary mb-2">Butler · in your voice</p>
+                      <p className="body-md text-b-text-primary whitespace-pre-wrap leading-relaxed">
+                        {msg.text}
+                      </p>
+                      {msg.groundingSources && msg.groundingSources.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-b-border-subtle">
