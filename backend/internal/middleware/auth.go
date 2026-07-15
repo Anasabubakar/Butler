@@ -65,3 +65,25 @@ func (fa *FirebaseAuth) Middleware(next http.Handler) http.Handler {
 }
 
 // VerifyToken validates a Firebase ID token and returns the UID.
+func (fa *FirebaseAuth) VerifyToken(ctx context.Context, token string) (string, error) {
+	decoded, err := fa.client.VerifyIDToken(ctx, token)
+	if err != nil {
+		return "", err
+	}
+	return decoded.UID, nil
+}
+
+func extractBearer(r *http.Request) string {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if token != authHeader {
+			return token
+		}
+	}
+	// WebSocket clients may pass the token as a query parameter.
+	if q := r.URL.Query().Get("token"); q != "" {
+		return q
+	}
+	return ""
+}
