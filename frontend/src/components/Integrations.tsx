@@ -147,3 +147,41 @@ export default function Integrations({ hasWorkspace, onConnectWorkspace }: Integ
       : tab === "available"
       ? available
       : coming;
+
+  const handleConnect = async (svc: (typeof resolved)[0]) => {
+    setMessage(null);
+    if (svc.group === "google") {
+      setConnecting(true);
+      try {
+        const ok = await onConnectWorkspace();
+        setMessage(
+          ok
+            ? "Google Workspace connected. Calendar, Gmail, Tasks, and Drive are live."
+            : "Could not complete Google connection. Try again."
+        );
+      } finally {
+        setConnecting(false);
+      }
+      return;
+    }
+    setMessage(`${svc.name} OAuth is next on the roadmap — not available in this build.`);
+  };
+
+  return (
+    <div className="w-full h-full overflow-y-auto bg-b-canvas">
+      <div className="px-14 pt-14 pb-14 max-w-[1300px]">
+        <h1 className="display-s text-b-text-primary">Integrations</h1>
+        <p className="body-lg mt-4 text-b-text-secondary">
+          What Butler can touch on your behalf. Grant a service, and it joins the house.
+        </p>
+
+        {message && (
+          <p className="body-sm mt-4 text-b-accent-text" role="status">
+            {message}
+          </p>
+        )}
+
+        <div className="mt-8 flex gap-6 border-b border-b-border-subtle">
+          {(
+            [
+              ["all", `All · ${resolved.length}`],
