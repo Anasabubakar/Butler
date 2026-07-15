@@ -49,3 +49,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </div>
     );
+  }
+
+  if (!user) return null;
+
+  const active = PATH_TO_SIDEBAR[pathname] || "home";
+
+  return (
+    <div className="h-screen flex overflow-hidden bg-b-canvas">
+      <Sidebar
+        active={active}
+        onSelect={(key) => router.push(SIDEBAR_TO_PATH[key])}
+      />
+      <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
+    </div>
+  );
+}
