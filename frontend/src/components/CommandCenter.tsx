@@ -196,3 +196,53 @@ export default function CommandCenter({
           <Card tone="raised" className="col-span-12 xl:col-span-5 p-6 min-h-[320px]">
             <div className="mono-label mb-2 text-b-text-tertiary">
               Agenda · {now.toLocaleDateString([], { weekday: "short" })}
+            </div>
+            <h3 className="type-h3 mb-4 text-b-text-primary">Held for you.</h3>
+            <div className="flex flex-col gap-2.5">
+              {events.length === 0 && !isLoading && (
+                <div className="body-sm text-b-text-tertiary">
+                  {hasWorkspace
+                    ? "No events on the calendar. I'm keeping the day quiet."
+                    : "Connect Google Calendar to see today's agenda."}
+                </div>
+              )}
+              {events.slice(0, 6).map((ev) => (
+                <div
+                  key={ev.id}
+                  className="grid grid-cols-[72px_1fr_auto] gap-3 items-baseline"
+                >
+                  <span className="mono-sm text-b-accent-text">
+                    {formatEventTime(ev.start)}
+                  </span>
+                  <span className="body-md-med truncate text-b-text-primary">
+                    {ev.summary}
+                  </span>
+                  <span className="body-sm truncate max-w-[180px] text-b-text-tertiary">
+                    {ev.location ? `· ${ev.location}` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card tone="raised" className="col-span-12 xl:col-span-3 p-6 min-h-[320px]">
+            <div className="mono-label mb-2 text-b-accent-text">
+              Inbox · {emails.length}
+            </div>
+            <h3 className="type-h3 mb-4 text-b-text-primary">Recent mail.</h3>
+            <div className="flex flex-col gap-2.5">
+              {emails.length === 0 && !isLoading && (
+                <div className="body-sm text-b-text-tertiary">
+                  {hasWorkspace ? "Your inbox is quiet, Boss." : "Connect Gmail to load messages."}
+                </div>
+              )}
+              {emails.slice(0, 5).map((m) => (
+                <div key={m.id} className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="body-sm-med truncate text-b-text-primary">{m.from}</div>
+                    <div className="body-sm truncate text-b-text-tertiary">{m.subject}</div>
+                  </div>
+                  <Chip tone="neutral">open</Chip>
+                </div>
+              ))}
+            </div>
