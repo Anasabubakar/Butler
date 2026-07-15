@@ -238,3 +238,51 @@ export default function Settings({
             <div className="body-sm mb-6 text-b-text-tertiary">
               Models Butler uses today. Routing is handled server-side via Gemini.
             </div>
+            <div className="flex flex-col gap-0">
+              <div className="grid grid-cols-[1fr_1fr_auto] gap-4 px-4 py-2 border-b border-b-border-subtle">
+                <span className="mono-label text-b-text-tertiary">Task</span>
+                <span className="mono-label text-b-text-tertiary">Model</span>
+                <span className="mono-label text-b-text-tertiary">Status</span>
+              </div>
+              {ROUTING_TABLE.map((row) => (
+                <div
+                  key={row.task}
+                  className="grid grid-cols-[1fr_1fr_auto] gap-4 px-4 py-3 items-center border-b border-b-border-subtle"
+                >
+                  <span className="body-md-med text-b-text-primary">{row.task}</span>
+                  <span className="body-sm text-b-text-secondary">{row.model}</span>
+                  <Chip tone={row.tone}>{row.status}</Chip>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card tone="paper" className="p-6">
+            <div className="mono-label mb-1 text-b-accent-text">Location</div>
+            <div className="body-sm mb-6 text-b-text-tertiary">
+              Used for weather context, travel, and time-aware scheduling.
+            </div>
+
+            <div className="flex items-center justify-between mb-4 gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="type-h4 text-b-text-primary">
+                  {locationAuto ? "Auto-detect" : "Manual"}
+                </div>
+                {!locationAuto && (
+                  <input
+                    value={locationText}
+                    onChange={(e) => setLocationText(e.target.value)}
+                    onBlur={() => save()}
+                    placeholder="City, region"
+                    className="mt-2 w-full max-w-sm bg-b-sunken rounded-[10px] px-3 py-2 body-sm outline-none border border-transparent focus:border-b-accent"
+                  />
+                )}
+                {locationAuto && locationText && (
+                  <div className="body-sm mt-1 text-b-text-tertiary">
+                    Currently: {locationText}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                aria-pressed={locationAuto}
