@@ -295,3 +295,53 @@ export default function CommandCenter({
             <div className="flex flex-col gap-2.5">
               {notes.length === 0 && (
                 <p className="body-sm text-b-text-tertiary">
+                  No memories yet. Add notes so Butler can stay consistent.
+                </p>
+              )}
+              {notes.slice(0, 4).map((n) => (
+                <div key={n.id} className="flex items-start justify-between gap-3 min-w-0">
+                  <span className="body-sm flex-1 min-w-0 leading-snug text-b-text-primary">
+                    · {n.title || n.content?.slice(0, 60)}
+                  </span>
+                  <span className="mono-sm shrink-0 pt-0.5 text-b-text-tertiary">
+                    {formatAgo(n.updatedAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={onOpenNotes}
+              className="body-sm-med mt-4 text-b-accent-text"
+            >
+              Open memory →
+            </button>
+          </Card>
+
+          <Card tone="raised" className="col-span-12 xl:col-span-4 p-6 min-h-[260px]">
+            <div className="mono-label mb-2 text-b-text-tertiary">Integrations</div>
+            <h3 className="type-h4 mb-4 text-b-text-primary">The household.</h3>
+            <div className="flex flex-col gap-3">
+              <IntegrationRow
+                name="Google Workspace"
+                state={hasWorkspace ? "connected" : "available"}
+              />
+              <IntegrationRow name="GitHub" state="soon" />
+              <IntegrationRow name="Slack" state="soon" />
+              <IntegrationRow name="Notion" state="soon" />
+            </div>
+            <button
+              type="button"
+              onClick={onOpenIntegrations}
+              className="body-sm-med mt-4 text-b-accent-text"
+            >
+              Manage integrations →
+            </button>
+          </Card>
+
+          <Card tone="raised" className="col-span-12 xl:col-span-4 p-6 min-h-[260px]">
+            <div className="mono-label mb-2 text-b-text-tertiary">Open tasks</div>
+            <h3 className="type-h4 mb-4 text-b-text-primary">Still on the list.</h3>
+            <div className="flex flex-col gap-2.5">
+              {tasks.filter((t) => t.status !== "completed").length === 0 && (
+                <p className="body-sm text-b-text-tertiary">
