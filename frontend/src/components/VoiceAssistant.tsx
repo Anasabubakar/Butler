@@ -275,3 +275,49 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
               aria-label={state === "listening" ? "Pause listening" : "Start listening"}
               className="relative w-[120px] h-[120px] rounded-full bg-b-accent flex items-center justify-center cursor-pointer shadow-[0_0_60px_rgba(184,84,49,0.35)]"
               animate={
+                reducedMotion || state !== "listening" ? undefined : { scale: [1, 1.04, 1] }
+              }
+              transition={{ duration: 1.4, repeat: Infinity }}
+            >
+              <span className="w-14 h-14 rounded-full bg-b-accent-soft/80" />
+            </motion.button>
+          </div>
+
+          <p className="mono-label text-b-accent-text mb-3">{statusLabel}</p>
+          <p
+            className="text-center text-[24px] leading-[30px] max-w-2xl text-b-text-inverse mb-4"
+            style={{ fontFamily: "var(--font-serif)", fontStyle: "italic" }}
+          >
+            {displayLine}
+          </p>
+          <p className="body-lg text-b-text-tertiary text-center max-w-xl">
+            {state === "paused"
+              ? "Tap the orb to resume listening."
+              : state === "error"
+              ? "Check microphone permissions and try again."
+              : "Butler is listening. Speak naturally."}
+          </p>
+
+          <div className="flex items-end justify-center gap-1.5 h-16 mt-12" aria-hidden>
+            {WAVEFORM.map((h, i) => (
+              <motion.span
+                key={i}
+                className="w-1.5 rounded-full bg-b-accent"
+                style={{
+                  height: h,
+                  opacity: state === "listening" ? 0.5 + (i % 3) * 0.15 : 0.25,
+                }}
+                animate={
+                  reducedMotion || state !== "listening"
+                    ? undefined
+                    : { height: [h, h + 8, h] }
+                }
+                transition={{
+                  duration: 0.8 + (i % 5) * 0.1,
+                  repeat: Infinity,
+                  delay: i * 0.03,
+                }}
+              />
+            ))}
+          </div>
+
