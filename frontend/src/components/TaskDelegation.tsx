@@ -261,3 +261,40 @@ export default function TaskDelegation() {
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   placeholder="What should Butler do?"
+                  className="w-full bg-b-sunken rounded-[10px] px-4 py-2.5 body-md outline-none border border-transparent focus:border-b-accent"
+                />
+                <input
+                  value={form.service}
+                  onChange={(e) => setForm((f) => ({ ...f, service: e.target.value }))}
+                  placeholder="Service (Gmail, Slack, GitHub…)"
+                  className="w-full bg-b-sunken rounded-[10px] px-4 py-2.5 body-md outline-none border border-transparent focus:border-b-accent"
+                />
+                <input
+                  value={form.context}
+                  onChange={(e) => setForm((f) => ({ ...f, context: e.target.value }))}
+                  placeholder="Context (recipient, PR, page…)"
+                  className="w-full bg-b-sunken rounded-[10px] px-4 py-2.5 body-md outline-none border border-transparent focus:border-b-accent"
+                />
+                <textarea
+                  value={form.draft}
+                  onChange={(e) => setForm((f) => ({ ...f, draft: e.target.value }))}
+                  placeholder="Draft content"
+                  rows={4}
+                  className="w-full bg-b-sunken rounded-[10px] px-4 py-3 body-sm outline-none border border-transparent focus:border-b-accent resize-none"
+                />
+              </div>
+              <div className="flex gap-2 justify-end mt-4">
+                <Button variant="ghost" onClick={() => setShowCreate(false)}>
+                  Cancel
+                </Button>
+                <Button variant="accent" onClick={handleCreate} disabled={!form.title.trim()}>
+                  Create
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
