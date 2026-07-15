@@ -138,69 +138,103 @@ export default function NotificationCenter() {
     } catch {}
   };
 
-  const unreadCount = items.filter((n) => !n.read).length;
+  const showDemo = !loading && items.length === 0;
 
   return (
-    <div className="h-full flex flex-col bg-b-canvas">
-      <header className="px-6 py-4 border-b border-b-border-subtle">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="heading-md">Notifications</h2>
-            {unreadCount > 0 && (
-              <Chip tone="accent" variant="solid">{unreadCount}</Chip>
-            )}
-          </div>
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
-              Mark all read
-            </Button>
-          )}
-        </div>
-        <div className="flex gap-1.5 mt-3">
-          {SOURCES.map((s) => (
-            <Chip
-              key={s}
-              tone={source === s ? "ink" : "neutral"}
-              variant={source === s ? "solid" : "soft"}
-              className="cursor-pointer capitalize"
-              onClick={() => setSource(s)}
+    <div className="h-full overflow-y-auto bg-b-canvas">
+      <div className="px-14 pt-14 pb-14 max-w-[1400px]">
+        <h1 className="display-s text-b-text-primary">Notifications Desk</h1>
+        <p className="body-lg mt-4 text-b-text-secondary max-w-3xl">
+          Butler has triaged 148 items today. Eleven need you. Everything else was answered, filed, or silenced.
+        </p>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+          {STATS.map((s) => (
+            <div
+              key={s.label}
+              className="rounded-[10px] border border-b-border-subtle bg-b-paper p-4 min-h-[90px]"
             >
-              {s}
-            </Chip>
+              <p
+                className={`mono-label ${
+                  s.tone === "accent"
+                    ? "text-b-accent-text"
+                    : s.tone === "success"
+                    ? "text-b-success"
+                    : s.tone === "warning"
+                    ? "text-b-warning"
+                    : "text-b-text-tertiary"
+                }`}
+              >
+                {s.label}
+              </p>
+              <p className="display-s mt-1 text-[32px] leading-[40px]">{s.value}</p>
+              <p className="body-sm text-b-text-tertiary mt-1">{s.sub}</p>
+            </div>
           ))}
         </div>
-      </header>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
-        {loading ? (
-          <p className="body-sm text-b-text-tertiary animate-pulse">Loading...</p>
-        ) : items.length === 0 ? (
-          <p className="body-sm text-b-text-secondary">All clear, Boss.</p>
-        ) : (
-          items.map((n) => (
-            <Card
-              key={n.id}
-              tone={n.read ? "paper" : "raised"}
-              radius="md"
-              className={`p-3 cursor-pointer transition-opacity ${n.read ? "opacity-60" : ""}`}
-              onClick={() => !n.read && handleMarkRead(n.id)}
+        <div className="flex flex-wrap gap-6 mt-10 border-b border-b-border-subtle pb-3">
+          {TABS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`pb-1 relative body-md-med transition-colors cursor-pointer ${
+                tab === key ? "text-b-text-primary" : "text-b-text-tertiary hover:text-b-text-secondary"
+              }`}
             >
-              <div className="flex items-start gap-3">
+              {label}
+              {tab === key && (
+                <span className="absolute left-0 right-0 -bottom-3 h-0.5 bg-b-accent" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-8 space-y-6">
+          {loading ? (
+            <p className="body-sm text-b-text-tertiary animate-pulse">Loading…</p>
+          ) : showDemo ? (
+            <>
+              <p className="mono-label text-b-text-tertiary">GMAIL · INBOX</p>
+              {DEMO_NOTIFICATIONS.filter((n) => n.section.includes("GMAIL")).map((n) => (
+                <DemoRow key={n.id} item={n} />
+              ))}
+              <p className="mono-label text-b-text-tertiary pt-2">SLACK</p>
+              {DEMO_NOTIFICATIONS.filter((n) => n.section === "SLACK").map((n) => (
+                <DemoRow key={n.id} item={n} />
+              ))}
+              <p className="mono-label text-b-text-tertiary pt-2">GITHUB</p>
+              {DEMO_NOTIFICATIONS.filter((n) => n.section === "GITHUB").map((n) => (
+                <DemoRow key={n.id} item={n} />
+              ))}
+            </>
+          ) : items.length === 0 ? (
+            <p className="body-sm text-b-text-secondary">All clear, Boss.</p>
+          ) : (
+            items.map((n) => (
+              <div
+                key={n.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => !n.read && handleMarkRead(n.id)}
+                onKeyDown={(e) => e.key === "Enter" && !n.read && handleMarkRead(n.id)}
+                className={`relative rounded-[10px] border border-b-border-subtle bg-b-paper min-h-[80px] flex items-center px-6 gap-6 cursor-pointer ${
+                  n.read ? "opacity-60" : ""
+                }`}
+              >
                 {!n.read && (
-                  <span className="mt-1.5 w-2 h-2 rounded-full bg-b-accent shrink-0" />
+                  <span className="absolute left-0 top-0 bottom-0 w-1 rounded-l-[10px] bg-b-accent" />
                 )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Chip tone={n.tone} variant="soft">{n.source}</Chip>
-                    <span className="body-xs text-b-text-tertiary">{n.time}</span>
-                  </div>
-                  <p className="heading-xs mt-1 truncate">{n.title}</p>
-                  <p className="body-xs text-b-text-secondary mt-0.5 line-clamp-2">{n.body}</p>
+                <div className="flex-1 min-w-0 py-4">
+                  <p className="body-md-med text-b-text-primary">{n.title}</p>
+                  <p className="body-sm text-b-text-secondary mt-1 line-clamp-2">{n.body}</p>
                 </div>
+                <span className="mono-sm text-b-text-tertiary">{n.time}</span>
               </div>
-            </Card>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
