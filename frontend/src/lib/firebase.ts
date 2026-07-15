@@ -115,3 +115,26 @@ export function initAuth(
       onNoUser();
       return;
     }
+    try {
+      const idToken = await user.getIdToken();
+      onUser(user, idToken);
+    } catch {
+      onAuthFailure();
+    }
+  });
+}
+
+export async function getIdToken(forceRefresh = false): Promise<string | null> {
+  const firebaseAuth = getFirebaseAuth();
+  const user = firebaseAuth?.currentUser;
+  if (!user) return null;
+  return user.getIdToken(forceRefresh);
+}
+
+export async function logout() {
+  persistGoogleToken(null);
+  const firebaseAuth = getFirebaseAuth();
+  if (firebaseAuth) {
+    await firebaseAuth.signOut();
+  }
+}
