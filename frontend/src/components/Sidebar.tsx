@@ -19,3 +19,24 @@ interface NavItem {
   label: string;
   badge?: string;
 }
+
+const NAV: NavItem[] = [
+  { key: "home", label: "Command Center" },
+  { key: "chat", label: "Conversations" },
+  { key: "delegation", label: "Delegated Work" },
+  { key: "notifications", label: "Notifications" },
+  { key: "voice", label: "Voice Room" },
+  { key: "notes", label: "Notes & Memory" },
+  { key: "integrations", label: "Integrations" },
+  { key: "settings", label: "Settings" },
+];
+
+interface SidebarProps {
+  active: SidebarKey;
+  onSelect: (key: SidebarKey) => void;
+  badges?: Partial<Record<SidebarKey, string>>;
+}
+
+export default function Sidebar({ active, onSelect, badges }: SidebarProps) {
+  const { user, hasWorkspace } = useAuth();
+
