@@ -1,16 +1,35 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import Button from "./Button";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { usePrefersReducedMotion } from "@/lib/motion";
 
 interface VoiceAssistantProps {
   onClose: () => void;
 }
 
-type SessionState = "idle" | "connecting" | "listening" | "speaking";
+type SessionState = "idle" | "connecting" | "listening" | "speaking" | "paused";
+
+const EARLIER = [
+  { time: "06:58", text: "“Read overnight mail.”" },
+  { time: "07:02", text: "“Rank by urgency.”" },
+  { time: "07:03", text: "“Draft replies in my voice.”" },
+];
+
+const SUGGESTIONS = [
+  "“Give me the brief.”",
+  "“What is Kai waiting on?”",
+  "“Move my 10am.”",
+  "“Draft to Meridian.”",
+  "“Hold silence until 3.”",
+];
+
+const WAVEFORM = [12, 20, 32, 44, 52, 60, 48, 40, 28, 20, 32, 44, 56, 68, 54, 42, 30, 20, 14, 20, 32, 44, 54, 44, 32, 20, 14, 20, 32, 44, 52, 44, 32, 20, 12];
 
 export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
-  const [state, setState] = useState<SessionState>("idle");
+  const reducedMotion = usePrefersReducedMotion();
+  const [state, setState] = useState<SessionState>("listening");
   const [transcript, setTranscript] = useState<string[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -26,14 +45,11 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
     setState("idle");
   }, []);
 
-  useEffect(() => {
-    return cleanup;
-  }, [cleanup]);
+  useEffect(() => () => cleanup(), [cleanup]);
 
   const startSession = useCallback(async () => {
     try {
       setState("connecting");
-
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { sampleRate: 16000, channelCount: 1 },
       });
