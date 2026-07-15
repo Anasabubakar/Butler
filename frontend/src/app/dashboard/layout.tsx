@@ -32,3 +32,20 @@ const SIDEBAR_TO_PATH: Record<SidebarKey, string> = {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login");
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-b-canvas">
+        <div className="flex flex-col items-center gap-3">
+          <ButlerLogo size={40} variant="dark" />
+          <p className="mono-label text-b-text-tertiary animate-pulse">Loading Butler…</p>
+        </div>
+      </div>
+    );
