@@ -222,3 +222,40 @@ export default function Integrations({ hasWorkspace, onConnectWorkspace }: Integ
               key={s.id}
               svc={s}
               connecting={connecting}
+              onAction={() => handleConnect(s)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ServiceCard({
+  svc,
+  connecting,
+  onAction,
+}: {
+  svc: {
+    name: string;
+    role: string;
+    scopes: string;
+    status: ServiceStatus;
+    sync: string;
+  };
+  connecting: boolean;
+  onAction: () => void;
+}) {
+  const isConnected = svc.status === "connected";
+  const isComing = svc.status === "coming_soon";
+
+  return (
+    <Card tone="paper" className="p-6 flex flex-col gap-5 min-h-[180px]">
+      <div className="flex items-start justify-between">
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center bg-b-sunken">
+          <span className="mono-label text-b-text-primary">
+            {svc.name
+              .split(" ")
+              .map((w) => w[0])
+              .join("")
+              .slice(0, 2)
