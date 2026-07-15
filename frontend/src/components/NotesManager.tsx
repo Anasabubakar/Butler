@@ -63,3 +63,36 @@ export default function NotesManager() {
       ? notes
       : notes.filter((n) => (n.tag || "").toLowerCase() === filter);
 
+  const openCreate = () => {
+    setEditing(null);
+    setTitle("");
+    setContent("");
+    setTag("memory");
+    setShowEditor(true);
+  };
+
+  const openEdit = (note: Note) => {
+    setEditing(note);
+    setTitle(note.title);
+    setContent(note.content);
+    setTag(note.tag || "memory");
+    setShowEditor(true);
+  };
+
+  const save = async () => {
+    if (!title.trim() || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      if (editing) {
+        await api.notes.update(editing.id, {
+          title: title.trim(),
+          content,
+          tag,
+        });
+      } else {
+        await api.notes.create({
+          title: title.trim(),
+          content,
+          color: "#F5EFE6",
+          tag,
