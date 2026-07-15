@@ -225,3 +225,35 @@ export default function NotesManager() {
               </h2>
               <input
                 value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What should Butler remember?"
+                className="w-full bg-b-sunken rounded-[10px] px-4 py-2.5 body-md text-b-text-primary placeholder:text-b-text-tertiary outline-none border border-transparent focus:border-b-accent mb-3"
+              />
+              <input
+                value={tag}
+                onChange={(e) => setTag(e.target.value)}
+                placeholder="Tag (people, projects, boss…)"
+                className="w-full bg-b-sunken rounded-[10px] px-4 py-2.5 body-sm text-b-text-primary placeholder:text-b-text-tertiary outline-none border border-transparent focus:border-b-accent mb-3"
+              />
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Context, people, preferences…"
+                rows={4}
+                className="w-full bg-b-sunken rounded-[10px] px-4 py-3 body-sm text-b-text-primary placeholder:text-b-text-tertiary outline-none border border-transparent focus:border-b-accent resize-none mb-4"
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="ghost" onClick={() => setShowEditor(false)}>
+                  Cancel
+                </Button>
+                <Button variant="accent" onClick={save} disabled={!title.trim() || saving}>
+                  {saving ? "Saving…" : editing ? "Update" : "Save memory"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
