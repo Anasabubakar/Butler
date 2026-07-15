@@ -286,3 +286,51 @@ export default function Settings({
               <button
                 type="button"
                 aria-pressed={locationAuto}
+                onClick={() => {
+                  const next = !locationAuto;
+                  setLocationAuto(next);
+                  save({ locationAutoDetect: next });
+                }}
+                className="w-12 h-7 rounded-full p-1 transition-colors shrink-0"
+                style={{
+                  background: locationAuto ? "var(--color-b-accent)" : "var(--color-b-sunken)",
+                }}
+              >
+                <div
+                  className="w-5 h-5 rounded-full transition-transform"
+                  style={{
+                    background: "var(--color-b-raised)",
+                    transform: locationAuto ? "translateX(20px)" : "translateX(0)",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  }}
+                />
+              </button>
+            </div>
+
+            <div className="rounded-[10px] p-4 bg-b-sunken">
+              <div className="mono-sm text-b-text-tertiary">
+                Butler never shares your precise coordinates with third parties. Location is used for
+                timezone, weather, and travel suggestions only.
+              </div>
+            </div>
+          </Card>
+
+          <Card tone="paper" className="p-6">
+            <div className="mono-label mb-4 text-b-danger">Danger zone</div>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <div className="body-md-med text-b-text-primary">Clear local browser data</div>
+                <div className="body-sm mt-1 text-b-text-tertiary">
+                  Clears session tokens stored in this browser. Cloud data is unaffected.
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  if (window.confirm("Clear local session data and reload?")) {
+                    sessionStorage.clear();
+                    localStorage.clear();
+                    window.location.href = "/login";
+                  }
+                }}
