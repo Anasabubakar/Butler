@@ -102,133 +102,112 @@ export default function NotesManager() {
     fetchNotes();
   }, [fetchNotes]);
 
-  const resetForm = () => {
-    setEditing(null);
-    setTitle("");
-    setContent("");
-    setColor(COLORS[0]);
-    setTag("");
-  };
-
-  const startEdit = (note: Note) => {
-    setEditing(note);
-    setTitle(note.title);
-    setContent(note.content);
-    setColor(note.color || COLORS[0]);
-    setTag(note.tag || "");
-  };
-
   const save = async () => {
     if (!title.trim()) return;
     try {
-      if (editing) {
-        await api.notes.update(editing.id, { title, content, color, tag: tag || undefined });
-      } else {
-        await api.notes.create({ title, content, color, tag: tag || undefined });
-      }
-      resetForm();
+      await api.notes.create({ title, content, color: "#F5EFE6", tag: "memory" });
+      setTitle("");
+      setContent("");
+      setShowEditor(false);
       fetchNotes();
     } catch {}
   };
 
-  const remove = async (id: string) => {
-    try {
-      await api.notes.delete(id);
-      fetchNotes();
-    } catch {}
-  };
+  const memories =
+    notes.length > 0
+      ? notes.map((n, i) => ({
+          id: n.id,
+          category: (n.tag ?? "MEMORY").toUpperCase(),
+          title: n.title,
+          body: n.content,
+          variant: (i % 3 === 1 ? "accent" : "paper") as "paper" | "accent",
+          rotate: [-1.5, 1, 0.5, -1, 1.5, -0.5][i % 6],
+        }))
+      : DEMO_MEMORIES;
 
   return (
-    <div className="h-full flex bg-b-canvas">
-      {/* Note list */}
-      <div className="w-80 border-r border-b-border-subtle flex flex-col">
-        <header className="px-4 py-4 border-b border-b-border-subtle flex items-center justify-between">
-          <h2 className="heading-md">Notes</h2>
-          <Button variant="accent" size="sm" onClick={resetForm}>
-            + New
-          </Button>
-        </header>
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {loading ? (
-            <p className="body-sm text-b-text-tertiary animate-pulse">Loading...</p>
-          ) : notes.length === 0 ? (
-            <p className="body-sm text-b-text-secondary text-center mt-8">
-              No notes yet, Boss.
+    <div className="h-full overflow-y-auto bg-b-canvas">
+      <div className="px-14 pt-14 pb-14">
+        <div className="flex items-start justify-between gap-4 max-w-[1400px]">
+          <div>
+            <h1 className="display-s text-b-text-primary">Notes &amp; Memory</h1>
+            <p className="body-lg mt-4 text-b-text-secondary">
+              What Butler has learned, and what you&apos;ve told it to remember.
             </p>
-          ) : (
-            notes.map((n) => (
-              <Card
-                key={n.id}
-                tone="paper"
-                radius="md"
-                className="p-3 cursor-pointer hover:bg-b-sunken transition-colors"
-                onClick={() => startEdit(n)}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: n.color || COLORS[0] }}
-                  />
-                  <h3 className="heading-xs truncate flex-1">{n.title}</h3>
-                </div>
-                {n.tag && (
-                  <Chip tone="neutral" variant="soft" className="mt-1.5">
-                    {n.tag}
-                  </Chip>
-                )}
-                <p className="body-xs text-b-text-tertiary mt-1 line-clamp-2">{n.content}</p>
-              </Card>
-            ))
-          )}
+          </div>
+          <Button variant="accent" size="sm" onClick={() => setShowEditor(true)} className="shrink-0 mt-2">
+            + Add memory
+          </Button>
         </div>
-      </div>
 
-      {/* Editor */}
-      <div className="flex-1 flex flex-col px-6 py-4">
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="heading-sm flex-1">
-            {editing ? "Edit Note" : "New Note"}
-          </h3>
-          {editing && (
-            <Button variant="ghost" size="sm" onClick={() => remove(editing.id)}>
-              Delete
-            </Button>
-          )}
-        </div>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Note title"
-          className="w-full bg-b-sunken rounded-[10px] px-4 py-2.5 body-md text-b-text-primary placeholder:text-b-text-tertiary outline-none border border-transparent focus:border-b-accent mb-3"
-        />
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Write something..."
-          className="flex-1 w-full bg-b-sunken rounded-[10px] px-4 py-3 body-sm text-b-text-primary placeholder:text-b-text-tertiary outline-none border border-transparent focus:border-b-accent resize-none mb-3"
-        />
-        <div className="flex items-center gap-3 mb-4">
-          <span className="body-xs text-b-text-secondary">Color:</span>
-          {COLORS.map((c) => (
+        <div className="flex flex-wrap gap-2 mt-8 max-w-[1400px]">
+          {FILTERS.map(({ key, label }) => (
             <button
-              key={c}
-              onClick={() => setColor(c)}
-              className={`w-6 h-6 rounded-full border-2 transition-all cursor-pointer ${
-                color === c ? "border-b-accent scale-110" : "border-transparent"
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`px-3 py-2 rounded-full mono-label transition-colors cursor-pointer ${
+                filter === key
+                  ? "bg-b-ink text-b-text-inverse"
+                  : "border border-b-border-default text-b-text-secondary hover:text-b-text-primary"
               }`}
-              style={{ backgroundColor: c }}
-            />
+            >
+              {label}
+            </button>
           ))}
-          <input
-            value={tag}
-            onChange={(e) => setTag(e.target.value)}
-            placeholder="Tag"
-            className="ml-auto bg-b-sunken rounded-[6px] px-3 py-1 body-xs text-b-text-primary placeholder:text-b-text-tertiary outline-none w-32 border border-transparent focus:border-b-accent"
-          />
         </div>
-        <Button variant="accent" onClick={save} disabled={!title.trim()}>
-          {editing ? "Update" : "Create"} Note
-        </Button>
+
+        {loading ? (
+          <p className="body-sm text-b-text-tertiary mt-12 animate-pulse">Loading…</p>
+        ) : (
+          <div className="mt-12 grid sm:grid-cols-2 xl:grid-cols-3 gap-8 max-w-[1400px]">
+            {memories.map((card, i) => (
+              <motion.div
+                key={card.id}
+                initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                style={{ transform: `rotate(${card.rotate}deg)` }}
+                className={`rounded-[10px] p-5 min-h-[180px] shadow-[2px_6px_16px_rgba(26,15,8,0.08)] ${
+                  card.variant === "accent" ? "bg-b-accent-soft" : "bg-b-paper"
+                }`}
+              >
+                <p className="mono-label text-b-accent-text mb-3">{card.category}</p>
+                <h3 className="body-md-med text-b-text-primary mb-2">{card.title}</h3>
+                <p className="body-sm text-b-text-secondary leading-relaxed">{card.body}</p>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {showEditor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-b-ink/40 p-6">
+            <div className="w-full max-w-lg rounded-[14px] bg-b-paper border border-b-border-subtle p-6 shadow-xl">
+              <h2 className="heading-sm mb-4">Add a memory</h2>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What should Butler remember?"
+                className="w-full bg-b-sunken rounded-[10px] px-4 py-2.5 body-md text-b-text-primary placeholder:text-b-text-tertiary outline-none border border-transparent focus:border-b-accent mb-3"
+              />
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Context, people, preferences…"
+                rows={4}
+                className="w-full bg-b-sunken rounded-[10px] px-4 py-3 body-sm text-b-text-primary placeholder:text-b-text-tertiary outline-none border border-transparent focus:border-b-accent resize-none mb-4"
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="ghost" onClick={() => setShowEditor(false)}>
+                  Cancel
+                </Button>
+                <Button variant="accent" onClick={save} disabled={!title.trim()}>
+                  Save memory
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
