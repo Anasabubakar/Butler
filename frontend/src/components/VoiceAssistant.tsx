@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePrefersReducedMotion } from "@/lib/motion";
 import { getIdToken } from "@/lib/firebase";
+import { normalizeApiBase } from "@/lib/api";
 import ButlerLogo from "./ButlerLogo";
 
 interface VoiceAssistantProps {
@@ -70,9 +71,9 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
       });
       mediaRef.current = stream;
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+      const apiBase = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL);
       const wsUrl =
-        apiBase.replace(/^http/, "ws") + `/ws/live?token=${encodeURIComponent(idToken)}`;
+        apiBase.replace(/^http/i, "ws") + `/ws/live?token=${encodeURIComponent(idToken)}`;
       const ws = new WebSocket(wsUrl);
       ws.binaryType = "arraybuffer";
       wsRef.current = ws;

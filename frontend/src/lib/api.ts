@@ -1,6 +1,28 @@
 import type { Note, Delegation, Notification, UserSettings, ChatThread, Message } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+/**
+ * Normalize NEXT_PUBLIC_API_URL so misconfigured envs like
+ * "https//host" or "https://https://host" never break fetch/CORS.
+ */
+export function normalizeApiBase(raw?: string | null): string {
+  let base = (raw || "http://localhost:8080").trim();
+  // Common misconfig: "https//host" (missing colon)
+  base = base.replace(/^(https?)\/\//i, "$1://");
+  // "https:/host" (one slash)
+  base = base.replace(/^(https?):\/(?!\/)/i, "$1://");
+  // Repeated schemes: "https://https://host" or "https://https//host"
+  for (let i = 0; i < 3; i++) {
+    base = base.replace(/^https?:\/\/https?:\/\//i, "https://");
+    base = base.replace(/^https?:\/\/https?\/\//i, "https://");
+  }
+  base = base.replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(base)) {
+    base = `https://${base.replace(/^\/+/, "")}`;
+  }
+  return base;
+}
+
+const API_BASE = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL);
 
 async function getIdToken(): Promise<string | null> {
   const { getIdToken: fetchIdToken } = await import("./firebase");
@@ -9,7 +31,8 @@ async function getIdToken(): Promise<string | null> {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getIdToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+  const res = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -19,9 +42,21 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(error || res.statusText);
+    let message = error || res.statusText;
+    try {
+      const parsed = JSON.parse(error) as { error?: string };
+      if (parsed?.error) message = parsed.error;
+    } catch {
+      /* plain text body */
+    }
+    throw new Error(message);
   }
-  return res.json();
+  if (res.status === 204) {
+    return undefined as T;
+  }
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 async function requestArray<T>(path: string, options: RequestInit = {}): Promise<T[]> {
@@ -238,17 +273,5 @@ export interface IntegrationConnection {
 }
 
 async function requestVoid(path: string, options: RequestInit = {}): Promise<void> {
-  const token = await getIdToken();
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || res.statusText);
-  }
+  await request<void>(path, options);
 }
