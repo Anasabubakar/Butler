@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setHasWorkspace(hasGoogleWorkspace());
     } catch (error) {
       console.error("Sign-in failed:", error);
-      throw error;
+      throw new Error(formatGoogleAuthError(error));
     } finally {
       setLoading(false);
     }
