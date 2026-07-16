@@ -100,6 +100,7 @@ func main() {
 		Settings:      handler.NewSettingsHandler(settingsSvc),
 		Integrations:  handler.NewIntegrationsHandler(integrationsSvc),
 		Workspace:     handler.NewWorkspaceHandler(workspaceSvc),
+		Webhooks:      handler.NewWebhooksHandler(),
 		WS:            handler.NewWSHandler(liveBridge, firebaseAuth, cfg.CORSOrigins),
 	}
 

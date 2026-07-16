@@ -102,9 +102,14 @@ Examples:
 ## Baby steps: Linear
 
 1. Linear → Settings → API → OAuth applications  
-2. Callback: `…/callback/linear`  
-3. Scopes: `read`, `write`  
-4. Render: `LINEAR_CLIENT_ID`, `LINEAR_CLIENT_SECRET`
+2. Callback: `https://butler-p395.onrender.com/api/integrations/callback/linear`  
+3. Scopes: enable **all** (`read`, `write`, `issues:create`, `comments:create`, `timeSchedule:write`, `admin`)  
+4. Webhook URL (important — use **backend**, not frontend):  
+   `https://butler-p395.onrender.com/api/webhooks/linear`  
+5. Render env:  
+   - `LINEAR_CLIENT_ID`  
+   - `LINEAR_CLIENT_SECRET`  
+   - `LINEAR_WEBHOOK_SECRET`
 
 ---
 

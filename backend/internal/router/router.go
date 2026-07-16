@@ -16,6 +16,7 @@ type Handlers struct {
 	Settings      *handler.SettingsHandler
 	Integrations  *handler.IntegrationsHandler
 	Workspace     *handler.WorkspaceHandler
+	Webhooks      *handler.WebhooksHandler
 	WS            *handler.WSHandler
 }
 
@@ -44,6 +45,12 @@ func New(h Handlers, auth *middleware.FirebaseAuth, corsOrigins []string) chi.Ro
 
 	// OAuth provider callbacks (authenticated via short-lived state, not Firebase).
 	r.Get("/api/integrations/callback/{provider}", h.Integrations.Callback)
+
+	// Provider webhooks (no Firebase auth — verified via signing secrets).
+	if h.Webhooks != nil {
+		r.Post("/api/webhooks/linear", h.Webhooks.Linear)
+		r.Post("/api/webhooks/slack", h.Webhooks.Slack)
+	}
 
 	r.Route("/api", func(api chi.Router) {
 		api.Use(auth.Middleware)

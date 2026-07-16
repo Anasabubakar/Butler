@@ -57,14 +57,18 @@ func BuildAuthURL(def Definition, cfg OAuthConfig, state string) string {
 		if len(def.DefaultScopes) > 0 {
 			q.Set("scope", strings.Join(def.DefaultScopes, ","))
 		}
-		q.Set("user_scope", "")
+		if len(def.UserScopes) > 0 {
+			q.Set("user_scope", strings.Join(def.UserScopes, ","))
+		}
 	case ProviderNotion:
 		q.Set("owner", "user")
 	case ProviderLinear:
 		if len(def.DefaultScopes) > 0 {
+			// Linear accepts space-separated scopes in some clients; comma is also accepted.
 			q.Set("scope", strings.Join(def.DefaultScopes, ","))
 		}
 		q.Set("prompt", "consent")
+		q.Set("actor", "app")
 	case ProviderFigma:
 		if len(def.DefaultScopes) > 0 {
 			q.Set("scope", strings.Join(def.DefaultScopes, " "))
