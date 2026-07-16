@@ -80,6 +80,7 @@ export const api = {
         threadId: string;
         modelUsed: string;
         actionsQueued?: number;
+        delegationIds?: string[];
       }>("/api/butler/chat", { method: "POST", body: JSON.stringify(data) }),
 
     transcribe: (data: { audioBase64: string; mimeType: string }) =>
@@ -203,11 +204,31 @@ export const api = {
 
     sync: () =>
       request<WorkspaceSyncResult>("/api/workspace/sync", { method: "POST" }),
+
+    createTask: (data: { title: string; notes?: string; due?: string }) =>
+      request<{ id: string; title: string; due?: string; status: string }>(
+        "/api/workspace/tasks",
+        { method: "POST", body: JSON.stringify(data) }
+      ),
+
+    completeTask: (id: string) =>
+      request<{ ok: boolean; id: string }>("/api/workspace/tasks/complete", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      }),
   },
 };
 
 export interface WorkspaceBrief {
   events: Array<{
+    id: string;
+    summary: string;
+    start: string;
+    end: string;
+    description?: string;
+    location?: string;
+  }>;
+  weekEvents?: Array<{
     id: string;
     summary: string;
     start: string;

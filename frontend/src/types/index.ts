@@ -11,6 +11,9 @@ export interface Message {
     title: string;
     uri: string;
   }>;
+  /** When Butler queues approvals, deep-link buttons use these ids. */
+  delegationIds?: string[];
+  actionsQueued?: number;
 }
 
 export interface Note {

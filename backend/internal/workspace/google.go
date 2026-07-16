@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -46,7 +47,8 @@ type Email struct {
 
 // Brief is the command-center payload.
 type Brief struct {
-	Events         []CalendarEvent `json:"events"`
+	Events         []CalendarEvent `json:"events"`         // today only
+	WeekEvents     []CalendarEvent `json:"weekEvents"`     // next 7 days
 	Tasks          []Task          `json:"tasks"`
 	Emails         []Email         `json:"emails"`
 	Conflicts      []Conflict      `json:"conflicts"`
@@ -79,12 +81,24 @@ func (c *GoogleClient) get(ctx context.Context, token, rawURL string) ([]byte, i
 	return body, resp.StatusCode, nil
 }
 
+// ListEvents returns calendar events from now through the given duration (default 24h).
 func (c *GoogleClient) ListEvents(ctx context.Context, token string) ([]CalendarEvent, error) {
+	return c.ListEventsRange(ctx, token, 24*time.Hour, 20)
+}
+
+// ListEventsRange returns events from now through duration.
+func (c *GoogleClient) ListEventsRange(ctx context.Context, token string, duration time.Duration, max int) ([]CalendarEvent, error) {
+	if duration <= 0 {
+		duration = 24 * time.Hour
+	}
+	if max <= 0 {
+		max = 20
+	}
 	now := time.Now().UTC()
 	q := url.Values{}
 	q.Set("timeMin", now.Format(time.RFC3339))
-	q.Set("timeMax", now.Add(24*time.Hour).Format(time.RFC3339))
-	q.Set("maxResults", "15")
+	q.Set("timeMax", now.Add(duration).Format(time.RFC3339))
+	q.Set("maxResults", fmt.Sprintf("%d", max))
 	q.Set("singleEvents", "true")
 	q.Set("orderBy", "startTime")
 	rawURL := "https://www.googleapis.com/calendar/v3/calendars/primary/events?" + q.Encode()
@@ -141,11 +155,74 @@ func (c *GoogleClient) ListEvents(ctx context.Context, token string) ([]Calendar
 	return out, nil
 }
 
-func (c *GoogleClient) ListTasks(ctx context.Context, token string) ([]Task, error) {
+func (c *GoogleClient) doJSON(ctx context.Context, method, token, rawURL string, payload any) ([]byte, int, error) {
+	var bodyReader io.Reader
+	if payload != nil {
+		b, err := json.Marshal(payload)
+		if err != nil {
+			return nil, 0, err
+		}
+		bodyReader = strings.NewReader(string(b))
+	}
+	req, err := http.NewRequestWithContext(ctx, method, rawURL, bodyReader)
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	if payload != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp.StatusCode, err
+	}
+	return body, resp.StatusCode, nil
+}
+
+// taskListIDs returns Google Tasks list IDs (falls back to @default).
+func (c *GoogleClient) taskListIDs(ctx context.Context, token string) ([]string, error) {
+	body, code, err := c.get(ctx, token, "https://tasks.googleapis.com/tasks/v1/users/@me/lists?maxResults=20")
+	if err != nil {
+		return nil, err
+	}
+	if code == 401 || code == 403 {
+		return nil, &AuthError{Status: code, Body: string(body)}
+	}
+	if code >= 300 {
+		// Fall back to @default if lists endpoint fails
+		return []string{"@default"}, nil
+	}
+	var parsed struct {
+		Items []struct {
+			ID string `json:"id"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return []string{"@default"}, nil
+	}
+	ids := make([]string, 0, len(parsed.Items))
+	for _, it := range parsed.Items {
+		if it.ID != "" {
+			ids = append(ids, it.ID)
+		}
+	}
+	if len(ids) == 0 {
+		return []string{"@default"}, nil
+	}
+	return ids, nil
+}
+
+func (c *GoogleClient) listTasksInList(ctx context.Context, token, listID string) ([]Task, error) {
 	q := url.Values{}
-	q.Set("maxResults", "20")
+	q.Set("maxResults", "40")
 	q.Set("showCompleted", "false")
-	rawURL := "https://tasks.googleapis.com/tasks/v1/lists/@default/tasks?" + q.Encode()
+	q.Set("showHidden", "false")
+	rawURL := fmt.Sprintf("https://tasks.googleapis.com/tasks/v1/lists/%s/tasks?%s", url.PathEscape(listID), q.Encode())
 
 	body, code, err := c.get(ctx, token, rawURL)
 	if err != nil {
@@ -155,7 +232,6 @@ func (c *GoogleClient) ListTasks(ctx context.Context, token string) ([]Task, err
 		return nil, &AuthError{Status: code, Body: string(body)}
 	}
 	if code >= 300 {
-		// Tasks list may 404 if never used — treat as empty
 		if code == 404 {
 			return []Task{}, nil
 		}
@@ -179,13 +255,175 @@ func (c *GoogleClient) ListTasks(ctx context.Context, token string) ([]Task, err
 		if title == "" {
 			title = "(Untitled)"
 		}
+		// Skip empty placeholder tasks Google sometimes inserts
+		if strings.TrimSpace(title) == "" {
+			continue
+		}
 		status := "needsAction"
 		if t.Status == "completed" {
 			status = "completed"
 		}
-		out = append(out, Task{ID: t.ID, Title: title, Due: t.Due, Status: status})
+		// Prefix list id so complete can route (id only is enough for Tasks API if we also store list)
+		out = append(out, Task{ID: listID + ":" + t.ID, Title: title, Due: t.Due, Status: status})
 	}
 	return out, nil
+}
+
+func (c *GoogleClient) ListTasks(ctx context.Context, token string) ([]Task, error) {
+	listIDs, err := c.taskListIDs(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	out := make([]Task, 0, 40)
+	for _, listID := range listIDs {
+		items, err := c.listTasksInList(ctx, token, listID)
+		if err != nil {
+			if _, ok := err.(*AuthError); ok {
+				return nil, err
+			}
+			continue
+		}
+		for _, t := range items {
+			// Deduplicate by bare task id
+			bare := t.ID
+			if i := strings.LastIndex(t.ID, ":"); i >= 0 {
+				bare = t.ID[i+1:]
+			}
+			if seen[bare] {
+				continue
+			}
+			seen[bare] = true
+			out = append(out, t)
+			if len(out) >= 40 {
+				return out, nil
+			}
+		}
+	}
+	return out, nil
+}
+
+// CreateTask adds a task to the user's default (or first) Google Tasks list.
+func (c *GoogleClient) CreateTask(ctx context.Context, token, title, notes, dueRFC3339 string) (*Task, error) {
+	listIDs, err := c.taskListIDs(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+	listID := listIDs[0]
+	payload := map[string]any{
+		"title":  title,
+		"status": "needsAction",
+	}
+	if notes != "" {
+		payload["notes"] = notes
+	}
+	if dueRFC3339 != "" {
+		payload["due"] = dueRFC3339
+	}
+	rawURL := fmt.Sprintf("https://tasks.googleapis.com/tasks/v1/lists/%s/tasks", url.PathEscape(listID))
+	body, code, err := c.doJSON(ctx, http.MethodPost, token, rawURL, payload)
+	if err != nil {
+		return nil, err
+	}
+	if code == 401 || code == 403 {
+		return nil, &AuthError{Status: code, Body: string(body)}
+	}
+	if code >= 300 {
+		return nil, fmt.Errorf("tasks create: %d %s", code, string(body))
+	}
+	var parsed struct {
+		ID     string `json:"id"`
+		Title  string `json:"title"`
+		Due    string `json:"due"`
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, err
+	}
+	status := "needsAction"
+	if parsed.Status == "completed" {
+		status = "completed"
+	}
+	return &Task{ID: listID + ":" + parsed.ID, Title: parsed.Title, Due: parsed.Due, Status: status}, nil
+}
+
+// CompleteTask marks a Google Task as done. taskID may be "listId:taskId" or bare id (uses first list).
+func (c *GoogleClient) CompleteTask(ctx context.Context, token, taskID string) error {
+	listID, bare := splitTaskID(taskID)
+	if listID == "" {
+		ids, err := c.taskListIDs(ctx, token)
+		if err != nil {
+			return err
+		}
+		listID = ids[0]
+	}
+	payload := map[string]any{
+		"id":     bare,
+		"status": "completed",
+	}
+	rawURL := fmt.Sprintf(
+		"https://tasks.googleapis.com/tasks/v1/lists/%s/tasks/%s",
+		url.PathEscape(listID), url.PathEscape(bare),
+	)
+	body, code, err := c.doJSON(ctx, http.MethodPatch, token, rawURL, payload)
+	if err != nil {
+		return err
+	}
+	if code == 401 || code == 403 {
+		return &AuthError{Status: code, Body: string(body)}
+	}
+	if code >= 300 {
+		return fmt.Errorf("tasks complete: %d %s", code, string(body))
+	}
+	return nil
+}
+
+func splitTaskID(id string) (listID, taskID string) {
+	if i := strings.Index(id, ":"); i > 0 {
+		return id[:i], id[i+1:]
+	}
+	return "", id
+}
+
+// SendGmail sends a plain-text email via the Gmail API.
+func (c *GoogleClient) SendGmail(ctx context.Context, token, to, subject, bodyText string) error {
+	to = strings.TrimSpace(to)
+	if to == "" {
+		return fmt.Errorf("gmail send: missing recipient")
+	}
+	// Extract email if Context was "Name <email@x.com>"
+	if i := strings.Index(to, "<"); i >= 0 {
+		if j := strings.Index(to, ">"); j > i {
+			to = strings.TrimSpace(to[i+1 : j])
+		}
+	}
+	var msg strings.Builder
+	msg.WriteString("To: " + to + "\r\n")
+	msg.WriteString("Subject: " + sanitizeHeader(subject) + "\r\n")
+	msg.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
+	msg.WriteString("\r\n")
+	msg.WriteString(bodyText)
+
+	// Gmail requires base64url encoding of the raw message (no padding)
+	raw := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(msg.String()))
+	payload := map[string]string{"raw": raw}
+	body, code, err := c.doJSON(ctx, http.MethodPost, token, "https://gmail.googleapis.com/gmail/v1/users/me/messages/send", payload)
+	if err != nil {
+		return err
+	}
+	if code == 401 || code == 403 {
+		return &AuthError{Status: code, Body: string(body)}
+	}
+	if code >= 300 {
+		return fmt.Errorf("gmail send: %d %s", code, string(body))
+	}
+	return nil
+}
+
+func sanitizeHeader(s string) string {
+	s = strings.ReplaceAll(s, "\r", " ")
+	s = strings.ReplaceAll(s, "\n", " ")
+	return strings.TrimSpace(s)
 }
 
 func (c *GoogleClient) ListInbox(ctx context.Context, token string, max int) ([]Email, error) {
@@ -264,15 +502,17 @@ func (c *GoogleClient) ListInbox(ctx context.Context, token string, max int) ([]
 // FetchBrief loads calendar, tasks, and mail for the command center.
 func (c *GoogleClient) FetchBrief(ctx context.Context, token string) (*Brief, error) {
 	brief := &Brief{
-		Connected: true,
-		FetchedAt: time.Now().UTC().Format(time.RFC3339),
-		Events:    []CalendarEvent{},
-		Tasks:     []Task{},
-		Emails:    []Email{},
-		Conflicts: []Conflict{},
+		Connected:  true,
+		FetchedAt:  time.Now().UTC().Format(time.RFC3339),
+		Events:     []CalendarEvent{},
+		WeekEvents: []CalendarEvent{},
+		Tasks:      []Task{},
+		Emails:     []Email{},
+		Conflicts:  []Conflict{},
 	}
 
-	events, err := c.ListEvents(ctx, token)
+	// Week of events; split into today vs rest of week on the client/service.
+	weekEvents, err := c.ListEventsRange(ctx, token, 7*24*time.Hour, 40)
 	if err != nil {
 		if ae, ok := err.(*AuthError); ok {
 			brief.Connected = false
@@ -281,8 +521,9 @@ func (c *GoogleClient) FetchBrief(ctx context.Context, token string) (*Brief, er
 		}
 		return nil, err
 	}
-	brief.Events = events
-	brief.Conflicts = detectConflicts(events)
+	brief.WeekEvents = weekEvents
+	brief.Events = filterTodayEvents(weekEvents)
+	brief.Conflicts = detectConflicts(brief.Events)
 
 	tasks, err := c.ListTasks(ctx, token)
 	if err != nil {
@@ -307,6 +548,33 @@ func (c *GoogleClient) FetchBrief(ctx context.Context, token string) (*Brief, er
 		brief.Emails = emails
 	}
 	return brief, nil
+}
+
+func filterTodayEvents(events []CalendarEvent) []CalendarEvent {
+	now := time.Now()
+	y, m, d := now.Date()
+	startOfDay := time.Date(y, m, d, 0, 0, 0, 0, now.Location())
+	endOfDay := startOfDay.Add(24 * time.Hour)
+	out := make([]CalendarEvent, 0, len(events))
+	for _, e := range events {
+		t := parseTime(e.Start)
+		if t.IsZero() {
+			// All-day date YYYY-MM-DD
+			if len(e.Start) >= 10 {
+				if t2, err := time.ParseInLocation("2006-01-02", e.Start[:10], now.Location()); err == nil {
+					if !t2.Before(startOfDay) && t2.Before(endOfDay) {
+						out = append(out, e)
+					}
+					continue
+				}
+			}
+			continue
+		}
+		if !t.Before(startOfDay) && t.Before(endOfDay) {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 func detectConflicts(events []CalendarEvent) []Conflict {

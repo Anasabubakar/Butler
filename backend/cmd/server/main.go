@@ -83,13 +83,14 @@ func main() {
 	liveBridge := gemini.NewLiveBridge(cfg.GeminiAPIKey)
 
 	notesSvc := service.NewNotesService(notesRepo)
-	delegationsSvc := service.NewDelegationsService(delegationsRepo)
 	notificationsSvc := service.NewNotificationsService(notificationsRepo)
 	settingsSvc := service.NewSettingsService(settingsRepo)
 	integrationsSvc := service.NewIntegrationsService(connectionsRepo, vault, cfg.PublicAPIBase, cfg.AppBaseURL)
 	workspaceSvc := service.NewWorkspaceService(
 		connectionsRepo, notificationsRepo, delegationsRepo, vault, cfg.EnableProactiveSync,
 	)
+	// Delegations need workspace so Approve can send mail / create tasks.
+	delegationsSvc := service.NewDelegationsService(delegationsRepo, workspaceSvc)
 	chatSvc := service.NewChatService(geminiClient, chatRepo, workspaceSvc, notesSvc, delegationsSvc)
 
 	handlers := router.Handlers{

@@ -13,17 +13,25 @@ function DelegationCard({
   onApprove,
   onReject,
   busy,
+  highlighted,
 }: {
   item: Delegation;
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
   busy?: boolean;
+  highlighted?: boolean;
 }) {
   const service = item.service.toUpperCase();
   const canAct = item.status === "awaiting" && onApprove && onReject;
 
   return (
-    <Card tone="paper" className="p-6 min-h-[200px] flex flex-col">
+    <Card
+      tone="paper"
+      className={`p-6 min-h-[200px] flex flex-col ${
+        highlighted ? "ring-2 ring-b-accent shadow-[0_0_0_4px_rgba(184,84,49,0.15)]" : ""
+      }`}
+      id={`delegation-${item.id}`}
+    >
       <div className="flex items-center gap-1 mb-2">
         <span className="mono-label text-b-accent-text">{service}</span>
         {item.context && (
@@ -72,12 +80,23 @@ export default function TaskDelegation() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [focusId, setFocusId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     service: "Gmail",
     context: "",
     draft: "",
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const focus = params.get("focus");
+    if (focus) {
+      setFocusId(focus);
+      setFilter("all");
+    }
+  }, []);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -98,13 +117,26 @@ export default function TaskDelegation() {
     fetchItems();
   }, [fetchItems]);
 
+  useEffect(() => {
+    if (!focusId || loading) return;
+    const el = document.getElementById(`delegation-${focusId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [focusId, loading, items]);
+
   const handleApprove = async (id: string) => {
     setBusyId(id);
+    setError(null);
     try {
       await api.delegations.approve(id);
       await fetchItems();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Approve failed");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Approve failed — is Google Workspace still connected?"
+      );
     } finally {
       setBusyId(null);
     }
@@ -215,6 +247,7 @@ export default function TaskDelegation() {
                       onApprove={handleApprove}
                       onReject={handleReject}
                       busy={busyId === d.id}
+                      highlighted={focusId === d.id}
                     />
                   ))
                 )}
@@ -247,6 +280,7 @@ export default function TaskDelegation() {
                 onApprove={d.status === "awaiting" ? handleApprove : undefined}
                 onReject={d.status === "awaiting" ? handleReject : undefined}
                 busy={busyId === d.id}
+                highlighted={focusId === d.id}
               />
             ))}
           </div>

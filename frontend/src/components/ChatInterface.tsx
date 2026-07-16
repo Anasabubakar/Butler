@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import type { Message, ChatMode, ChatThread } from "@/types";
 import ButlerLogo from "./ButlerLogo";
@@ -135,6 +136,8 @@ export default function ChatInterface() {
         mode,
         timestamp: new Date().toISOString(),
         groundingSources: res.groundingSources,
+        delegationIds: res.delegationIds,
+        actionsQueued: res.actionsQueued,
       };
       setMessages((prev) => [...prev, botMsg]);
       await loadThreads();
@@ -280,6 +283,29 @@ export default function ChatInterface() {
                               {s.title}
                             </a>
                           ))}
+                        </div>
+                      )}
+                      {((msg.delegationIds && msg.delegationIds.length > 0) ||
+                        (msg.actionsQueued && msg.actionsQueued > 0)) && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {msg.delegationIds && msg.delegationIds.length > 0 ? (
+                            msg.delegationIds.map((id) => (
+                              <Link
+                                key={id}
+                                href={`/dashboard/delegation?focus=${encodeURIComponent(id)}`}
+                                className="inline-flex items-center px-3 py-1.5 rounded-full bg-b-accent text-b-text-on-accent body-sm-med hover:opacity-90 transition-opacity"
+                              >
+                                Review delegation →
+                              </Link>
+                            ))
+                          ) : (
+                            <Link
+                              href="/dashboard/delegation"
+                              className="inline-flex items-center px-3 py-1.5 rounded-full bg-b-accent text-b-text-on-accent body-sm-med hover:opacity-90 transition-opacity"
+                            >
+                              Open Delegated Work →
+                            </Link>
+                          )}
                         </div>
                       )}
                     </div>

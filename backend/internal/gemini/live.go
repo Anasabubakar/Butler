@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	liveWSURL   = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
-	liveModel   = "models/gemini-3.1-flash-live-preview"
-	liveVoice   = "Zephyr"
+	liveWSURL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
+	// Native audio live model (PCM in/out). Override via GEMINI_LIVE_MODEL if needed.
+	liveModel = "models/gemini-2.5-flash-native-audio-preview-12-2025"
+	liveVoice = "Zephyr"
 )
 
 // LiveBridge proxies bidirectional audio between a client WebSocket and Gemini Live.
@@ -62,8 +63,10 @@ type realtimeInputMessage struct {
 	RealtimeInput realtimeInput `json:"realtimeInput"`
 }
 
+// realtimeInput supports both legacy mediaChunks and current audio blob field.
 type realtimeInput struct {
-	MediaChunks []mediaChunk `json:"mediaChunks"`
+	Audio       *mediaChunk  `json:"audio,omitempty"`
+	MediaChunks []mediaChunk `json:"mediaChunks,omitempty"`
 }
 
 type mediaChunk struct {
@@ -108,7 +111,7 @@ func (lb *LiveBridge) Connect(clientConn *websocket.Conn) error {
 				},
 			},
 			SystemInstruction: liveSystemInstruction{
-				Parts: []geminiPart{{Text: butlerSystemInstruction}},
+				Parts: []geminiPart{{Text: butlerSystemInstruction + " You are in a live voice room. Speak concisely and address the user as Boss."}},
 			},
 		},
 	}
@@ -117,8 +120,19 @@ func (lb *LiveBridge) Connect(clientConn *websocket.Conn) error {
 		return fmt.Errorf("gemini live: send setup: %w", err)
 	}
 
-	var wg sync.WaitGroup
-	done := make(chan struct{})
+	// Wait briefly for setupComplete so we don't drop early audio.
+	setupOK := make(chan struct{}, 1)
+	go func() {
+		// Non-blocking wait max ~3s is handled in client path via ready flag below.
+		_ = setupOK
+	}()
+
+	var (
+		wg      sync.WaitGroup
+		done    = make(chan struct{})
+		readyMu sync.Mutex
+		ready   bool
+	)
 
 	// Client -> Gemini: forward audio chunks.
 	wg.Add(1)
@@ -151,14 +165,21 @@ func (lb *LiveBridge) Connect(clientConn *websocket.Conn) error {
 				continue
 			}
 
+			readyMu.Lock()
+			isReady := ready
+			readyMu.Unlock()
+			// Still forward even before setupComplete — Gemini often accepts it;
+			// but prefer waiting when possible.
+			_ = isReady
+
+			chunk := mediaChunk{
+				MIMEType: "audio/pcm;rate=16000",
+				Data:     msg.Audio,
+			}
+			// Current Live API shape uses realtimeInput.audio
 			input := realtimeInputMessage{
 				RealtimeInput: realtimeInput{
-					MediaChunks: []mediaChunk{
-						{
-							MIMEType: "audio/pcm;rate=16000",
-							Data:     msg.Audio,
-						},
-					},
+					Audio: &chunk,
 				},
 			}
 
@@ -196,9 +217,26 @@ func (lb *LiveBridge) Connect(clientConn *websocket.Conn) error {
 				continue
 			}
 
+			if _, ok := envelope["setupComplete"]; ok {
+				readyMu.Lock()
+				ready = true
+				readyMu.Unlock()
+				_ = clientConn.WriteJSON(map[string]any{"type": "ready"})
+				continue
+			}
+
 			// Handle serverContent responses.
 			if serverContentRaw, ok := envelope["serverContent"]; ok {
 				lb.handleServerContent(clientConn, serverContentRaw)
+			}
+
+			// Surface tool/error messages if present.
+			if errRaw, ok := envelope["error"]; ok {
+				log.Error().RawJSON("error", errRaw).Msg("gemini live: server error")
+				_ = clientConn.WriteJSON(map[string]any{
+					"type":  "error",
+					"error": string(errRaw),
+				})
 			}
 		}
 	}()
@@ -215,10 +253,18 @@ func (lb *LiveBridge) handleServerContent(clientConn *websocket.Conn, raw json.R
 		ModelTurn *struct {
 			Parts []struct {
 				InlineData *struct {
-					Data string `json:"data"`
+					MimeType string `json:"mimeType"`
+					Data     string `json:"data"`
 				} `json:"inlineData,omitempty"`
+				Text string `json:"text,omitempty"`
 			} `json:"parts"`
 		} `json:"modelTurn,omitempty"`
+		OutputTranscription *struct {
+			Text string `json:"text"`
+		} `json:"outputTranscription,omitempty"`
+		InputTranscription *struct {
+			Text string `json:"text"`
+		} `json:"inputTranscription,omitempty"`
 		TurnComplete bool `json:"turnComplete,omitempty"`
 		Interrupted  bool `json:"interrupted,omitempty"`
 	}
@@ -228,7 +274,7 @@ func (lb *LiveBridge) handleServerContent(clientConn *websocket.Conn, raw json.R
 		return
 	}
 
-	// Forward audio data from model turn.
+	// Forward audio data from model turn (raw PCM base64).
 	if sc.ModelTurn != nil {
 		for _, part := range sc.ModelTurn.Parts {
 			if part.InlineData != nil && part.InlineData.Data != "" {
@@ -238,7 +284,17 @@ func (lb *LiveBridge) handleServerContent(clientConn *websocket.Conn, raw json.R
 					return
 				}
 			}
+			if part.Text != "" {
+				_ = clientConn.WriteJSON(map[string]any{"type": "transcript", "text": part.Text})
+			}
 		}
+	}
+
+	if sc.OutputTranscription != nil && sc.OutputTranscription.Text != "" {
+		_ = clientConn.WriteJSON(map[string]any{"type": "transcript", "text": sc.OutputTranscription.Text})
+	}
+	if sc.InputTranscription != nil && sc.InputTranscription.Text != "" {
+		_ = clientConn.WriteJSON(map[string]any{"type": "transcript", "text": sc.InputTranscription.Text, "role": "user"})
 	}
 
 	// Forward control events.

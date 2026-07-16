@@ -138,13 +138,7 @@ export default function Integrations({ hasWorkspace, onConnectWorkspace }: Integ
         return;
       }
       if (res.mode === "disabled") {
-        const parts = [
-          res.message || `${item.name} OAuth is not configured on the server.`,
-          item.setupHint ? `How: ${item.setupHint}` : "",
-          item.callbackUrl ? `Callback URL to paste in the OAuth app: ${item.callbackUrl}` : "",
-          item.docsUrl ? `Docs: ${item.docsUrl}` : "",
-        ].filter(Boolean);
-        setMessage(parts.join(" · "));
+        setMessage(`${item.name} setup is coming soon.`);
         return;
       }
       setMessage(res.message || "Connect flow started.");
@@ -295,30 +289,10 @@ function ServiceCard({
         {isConnected && item.accountLabel && (
           <div className="body-sm text-b-text-tertiary mt-1">{item.accountLabel}</div>
         )}
-        {isNotConfigured && item.setupHint && (
-          <div className="body-sm text-b-text-tertiary mt-2 leading-relaxed">{item.setupHint}</div>
-        )}
-        {isNotConfigured && item.callbackUrl && (
-          <button
-            type="button"
-            className="mono-sm text-left text-b-accent-text mt-1 break-all hover:underline cursor-pointer"
-            title="Click to copy callback URL"
-            onClick={() => {
-              void navigator.clipboard?.writeText(item.callbackUrl || "");
-            }}
-          >
-            Callback: {item.callbackUrl}
-          </button>
-        )}
-        {item.docsUrl && !isConnected && (
-          <a
-            href={item.docsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="body-sm text-b-accent-text mt-1 hover:underline w-fit"
-          >
-            Open developer console →
-          </a>
+        {(isComing || isNotConfigured) && (
+          <div className="body-sm text-b-text-tertiary mt-2 leading-relaxed">
+            Coming soon — setup details will land here when this connector is ready.
+          </div>
         )}
       </div>
       <div className="flex items-center justify-between gap-2">
@@ -327,10 +301,8 @@ function ServiceCard({
             ? item.lastSyncedAt
               ? "sync · live"
               : "connected"
-            : isComing
-            ? "roadmap"
-            : isNotConfigured
-            ? "not configured"
+            : isComing || isNotConfigured
+            ? "coming soon"
             : "not connected"}
         </span>
         {isConnected ? (
@@ -342,11 +314,11 @@ function ServiceCard({
           >
             {busy ? "…" : "Disconnect"}
           </button>
-        ) : isComing ? (
-          <span className="mono-label text-b-text-tertiary">Soon</span>
+        ) : isComing || isNotConfigured ? (
+          <span className="mono-label text-b-text-tertiary">Coming soon</span>
         ) : (
           <Button size="sm" variant="primary" onClick={onConnect} disabled={busy}>
-            {busy ? "…" : isNotConfigured ? "How to setup" : "Connect"}
+            {busy ? "…" : "Connect"}
           </Button>
         )}
       </div>

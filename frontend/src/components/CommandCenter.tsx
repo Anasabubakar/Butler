@@ -9,6 +9,7 @@ import Button from "./Button";
 interface CommandCenterProps {
   user: User | null;
   events: CalendarEvent[];
+  weekEvents?: CalendarEvent[];
   tasks: Task[];
   emails: GmailMessage[];
   notes: Note[];
@@ -22,11 +23,14 @@ interface CommandCenterProps {
   onOpenNotifications: () => void;
   onOpenNotes: () => void;
   onOpenIntegrations: () => void;
+  onCompleteTask?: (id: string) => void;
+  onAddTask?: (title: string) => void;
 }
 
 export default function CommandCenter({
   user,
   events,
+  weekEvents = [],
   tasks,
   emails,
   notes,
@@ -40,6 +44,8 @@ export default function CommandCenter({
   onOpenNotifications,
   onOpenNotes,
   onOpenIntegrations,
+  onCompleteTask,
+  onAddTask,
 }: CommandCenterProps) {
   const now = new Date();
   const dayLine = now.toLocaleDateString([], {
@@ -48,12 +54,14 @@ export default function CommandCenter({
     month: "long",
   });
   const displayName = user?.displayName?.split(" ")[0] || "Boss";
-  const pendingTasks = tasks.filter((t) => t.status !== "completed").length;
+  const openTasks = tasks.filter((t) => t.status !== "completed");
+  const pendingTasks = openTasks.length;
   const awaiting = delegations.filter((d) => d.status === "awaiting");
   const needsCount = emails.length + pendingTasks + awaiting.length;
 
   const freeHours = estimateDeepWork(events);
-  const greeting = greetingForHour(now.getHours());
+  const greeting = pickGreeting(now, displayName);
+  const weekOnly = weekEvents.filter((e) => !isTodayEvent(e));
 
   return (
     <div className="w-full h-full overflow-y-auto bg-b-canvas">
@@ -86,10 +94,15 @@ export default function CommandCenter({
 
       <div className="px-8 pt-8 pb-4">
         <h1 className="display-m text-b-text-primary">
-          {greeting},{" "}
-          <em className="display-italic" style={{ fontStyle: "italic" }}>
-            {displayName}.
-          </em>
+          {greeting.line}
+          {greeting.includeName && (
+            <>
+              {" "}
+              <em className="display-italic" style={{ fontStyle: "italic" }}>
+                {displayName}.
+              </em>
+            </>
+          )}
         </h1>
         <p className="body-lg mt-3 text-b-text-secondary">
           {!hasWorkspace
@@ -195,18 +208,18 @@ export default function CommandCenter({
 
           <Card tone="raised" className="col-span-12 xl:col-span-5 p-6 min-h-[320px]">
             <div className="mono-label mb-2 text-b-text-tertiary">
-              Agenda · {now.toLocaleDateString([], { weekday: "short" })}
+              Agenda · Today only
             </div>
             <h3 className="type-h3 mb-4 text-b-text-primary">Held for you.</h3>
             <div className="flex flex-col gap-2.5">
               {events.length === 0 && !isLoading && (
                 <div className="body-sm text-b-text-tertiary">
                   {hasWorkspace
-                    ? "No events on the calendar. I'm keeping the day quiet."
+                    ? "No events today. I'm keeping the day quiet."
                     : "Connect Google Calendar to see today's agenda."}
                 </div>
               )}
-              {events.slice(0, 6).map((ev) => (
+              {events.slice(0, 5).map((ev) => (
                 <div
                   key={ev.id}
                   className="grid grid-cols-[72px_1fr_auto] gap-3 items-baseline"
@@ -222,6 +235,30 @@ export default function CommandCenter({
                   </span>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-b-border-subtle">
+              <div className="mono-label mb-3 text-b-text-tertiary">This week</div>
+              <div className="flex flex-col gap-2">
+                {weekOnly.length === 0 && !isLoading && (
+                  <div className="body-sm text-b-text-tertiary">
+                    {hasWorkspace ? "Nothing else scheduled this week." : "—"}
+                  </div>
+                )}
+                {weekOnly.slice(0, 4).map((ev) => (
+                  <div
+                    key={`w-${ev.id}`}
+                    className="grid grid-cols-[88px_1fr] gap-3 items-baseline"
+                  >
+                    <span className="mono-sm text-b-text-tertiary">
+                      {formatWeekDay(ev.start)}
+                    </span>
+                    <span className="body-sm truncate text-b-text-primary">
+                      {formatEventTime(ev.start)} · {ev.summary}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </Card>
 
@@ -340,23 +377,40 @@ export default function CommandCenter({
           </Card>
 
           <Card tone="raised" className="col-span-12 xl:col-span-4 p-6 min-h-[260px]">
-            <div className="mono-label mb-2 text-b-text-tertiary">Open tasks</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="mono-label text-b-text-tertiary">Open tasks · Google</div>
+              {onAddTask && hasWorkspace && (
+                <button
+                  type="button"
+                  className="mono-label text-b-accent-text hover:underline cursor-pointer"
+                  onClick={() => {
+                    const title = window.prompt("New task title");
+                    if (title?.trim()) onAddTask(title.trim());
+                  }}
+                >
+                  + Add
+                </button>
+              )}
+            </div>
             <h3 className="type-h4 mb-4 text-b-text-primary">Still on the list.</h3>
             <div className="flex flex-col gap-2.5">
-              {tasks.filter((t) => t.status !== "completed").length === 0 && (
+              {openTasks.length === 0 && (
                 <p className="body-sm text-b-text-tertiary">
                   {hasWorkspace ? "No open tasks." : "Connect Tasks to load your list."}
                 </p>
               )}
-              {tasks
-                .filter((t) => t.status !== "completed")
-                .slice(0, 5)
-                .map((t) => (
-                  <div key={t.id} className="flex items-start gap-2">
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-b-accent shrink-0" />
-                    <span className="body-sm text-b-text-primary">{t.title}</span>
-                  </div>
-                ))}
+              {openTasks.slice(0, 6).map((t) => (
+                <div key={t.id} className="flex items-start gap-2.5 group">
+                  <button
+                    type="button"
+                    aria-label={`Mark ${t.title} done`}
+                    disabled={!onCompleteTask}
+                    onClick={() => onCompleteTask?.(t.id)}
+                    className="mt-0.5 w-4 h-4 rounded-[4px] border border-b-border-default shrink-0 hover:border-b-accent hover:bg-b-accent-soft transition-colors cursor-pointer disabled:cursor-default"
+                  />
+                  <span className="body-sm text-b-text-primary leading-snug">{t.title}</span>
+                </div>
+              ))}
             </div>
           </Card>
         </div>
@@ -399,10 +453,76 @@ function IntegrationRow({
   );
 }
 
-function greetingForHour(h: number) {
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
+/** Five named greeting states — rotates by time-of-day + weekday, always can include name. */
+function pickGreeting(now: Date, name: string): { line: string; includeName: boolean; state: string } {
+  const h = now.getHours();
+  const day = now.getDay(); // 0 Sun
+  const states: Array<{ state: string; line: string; includeName: boolean; when: () => boolean }> = [
+    {
+      state: "dawn",
+      line: "Up early",
+      includeName: true,
+      when: () => h >= 5 && h < 8,
+    },
+    {
+      state: "morning",
+      line: "Good morning",
+      includeName: true,
+      when: () => h >= 8 && h < 12,
+    },
+    {
+      state: "afternoon",
+      line: "Good afternoon",
+      includeName: true,
+      when: () => h >= 12 && h < 17,
+    },
+    {
+      state: "evening",
+      line: "Good evening",
+      includeName: true,
+      when: () => h >= 17 && h < 21,
+    },
+    {
+      state: "night",
+      line: "Still at it",
+      includeName: true,
+      when: () => h >= 21 || h < 5,
+    },
+  ];
+  // Weekend flavour: swap afternoon line
+  if ((day === 0 || day === 6) && h >= 10 && h < 16) {
+    return { state: "weekend", line: "Easy day", includeName: true };
+  }
+  const hit = states.find((s) => s.when());
+  if (hit) return { state: hit.state, line: hit.line, includeName: hit.includeName };
+  return { state: "default", line: `Hello`, includeName: true };
+}
+
+function isTodayEvent(ev: CalendarEvent) {
+  const start = ev.start || "";
+  const now = new Date();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(start)) {
+    const today = now.toISOString().slice(0, 10);
+    return start === today;
+  }
+  const d = new Date(start);
+  if (Number.isNaN(d.getTime())) return false;
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
+
+function formatWeekDay(start: string) {
+  if (!start) return "—";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(start)) {
+    const d = new Date(start + "T12:00:00");
+    return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  }
+  const d = new Date(start);
+  if (Number.isNaN(d.getTime())) return start.slice(0, 10);
+  return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
 }
 
 function briefFromData(

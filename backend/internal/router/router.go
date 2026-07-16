@@ -101,6 +101,8 @@ func New(h Handlers, auth *middleware.FirebaseAuth, corsOrigins []string) chi.Ro
 		api.Route("/workspace", func(ws chi.Router) {
 			ws.Get("/brief", h.Workspace.Brief)
 			ws.Post("/sync", h.Workspace.Sync)
+			ws.Post("/tasks", h.Workspace.CreateTask)
+			ws.Post("/tasks/complete", h.Workspace.CompleteTask)
 		})
 	})
 

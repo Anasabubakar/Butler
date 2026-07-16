@@ -27,6 +27,67 @@ const WAVEFORM = [
   20, 14, 20, 32, 44, 52, 44, 32, 20, 12,
 ];
 
+/** Play raw PCM s16le base64 (Gemini Live output, typically 24kHz). */
+function playPcmBase64(
+  audioCtx: AudioContext,
+  b64: string,
+  sampleRate = 24000
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      const raw = atob(b64);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      // Ensure even length
+      const evenLen = bytes.length - (bytes.length % 2);
+      const samples = evenLen / 2;
+      const float32 = new Float32Array(samples);
+      const view = new DataView(bytes.buffer, bytes.byteOffset, evenLen);
+      for (let i = 0; i < samples; i++) {
+        float32[i] = view.getInt16(i * 2, true) / 32768;
+      }
+      const buffer = audioCtx.createBuffer(1, samples, sampleRate);
+      buffer.copyToChannel(float32, 0);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(audioCtx.destination);
+      src.onended = () => resolve();
+      src.start();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+/** Downsample Float32 mic buffer to 16kHz Int16 PCM. */
+function downsampleTo16k(input: Float32Array, inputRate: number): Int16Array {
+  if (inputRate === 16000) {
+    const out = new Int16Array(input.length);
+    for (let i = 0; i < input.length; i++) {
+      out[i] = Math.max(-32768, Math.min(32767, input[i] * 32768));
+    }
+    return out;
+  }
+  const ratio = inputRate / 16000;
+  const newLen = Math.floor(input.length / ratio);
+  const out = new Int16Array(newLen);
+  for (let i = 0; i < newLen; i++) {
+    const idx = Math.floor(i * ratio);
+    out[i] = Math.max(-32768, Math.min(32767, input[idx] * 32768));
+  }
+  return out;
+}
+
+function int16ToBase64(int16: Int16Array): string {
+  const bytes = new Uint8Array(int16.buffer, int16.byteOffset, int16.byteLength);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
 export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
   const reducedMotion = usePrefersReducedMotion();
   const [state, setState] = useState<SessionState>("idle");
@@ -36,6 +97,9 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const mediaRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const playQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   const cleanup = useCallback(() => {
     try {
@@ -67,7 +131,11 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { sampleRate: 16000, channelCount: 1 },
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
       });
       mediaRef.current = stream;
 
@@ -78,85 +146,98 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
       ws.binaryType = "arraybuffer";
       wsRef.current = ws;
 
+      // Playback context at 24kHz (Gemini Live native audio out)
       const audioCtx = new AudioContext({ sampleRate: 24000 });
       audioCtxRef.current = audioCtx;
+      if (audioCtx.state === "suspended") {
+        await audioCtx.resume();
+      }
+
+      // Capture context matches mic native rate; we resample to 16k
+      const captureCtx = new AudioContext();
+      const inputRate = captureCtx.sampleRate;
 
       ws.onopen = () => {
         setState("listening");
-        const source = audioCtx.createMediaStreamSource(stream);
-        const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+        const source = captureCtx.createMediaStreamSource(stream);
+        const processor = captureCtx.createScriptProcessor(4096, 1, 1);
         processorRef.current = processor;
         source.connect(processor);
-        processor.connect(audioCtx.destination);
+        // Silent gain so we don't feedback mic to speakers
+        const mute = captureCtx.createGain();
+        mute.gain.value = 0;
+        processor.connect(mute);
+        mute.connect(captureCtx.destination);
+
         processor.onaudioprocess = (e) => {
           if (ws.readyState !== WebSocket.OPEN) return;
+          if (stateRef.current === "paused") return;
           const pcm = e.inputBuffer.getChannelData(0);
-          const int16 = new Int16Array(pcm.length);
-          for (let i = 0; i < pcm.length; i++) {
-            int16[i] = Math.max(-32768, Math.min(32767, pcm[i] * 32768));
+          const int16 = downsampleTo16k(pcm, inputRate);
+          try {
+            ws.send(JSON.stringify({ audio: int16ToBase64(int16) }));
+          } catch {
+            /* ignore send errors mid-stream */
           }
-          // Server expects JSON with base64 PCM when possible; raw buffer as fallback
-          const bytes = new Uint8Array(int16.buffer);
-          let binary = "";
-          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-          ws.send(JSON.stringify({ audio: btoa(binary) }));
         };
       };
 
-      ws.onmessage = async (event) => {
-        if (typeof event.data === "string") {
-          try {
-            const msg = JSON.parse(event.data);
-            if (msg.type === "transcript" && msg.text) {
-              setTranscript((prev) => [...prev, msg.text]);
-            } else if (msg.text) {
-              setTranscript((prev) => [...prev, msg.text]);
-            } else if (msg.audio) {
-              setState("speaking");
-              // base64 audio from live bridge
-              const raw = atob(msg.audio);
-              const buf = new ArrayBuffer(raw.length);
-              const view = new Uint8Array(buf);
-              for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
-              try {
-                const audioBuffer = await audioCtx.decodeAudioData(buf.slice(0));
-                const bufferSource = audioCtx.createBufferSource();
-                bufferSource.buffer = audioBuffer;
-                bufferSource.connect(audioCtx.destination);
-                bufferSource.onended = () => setState("listening");
-                bufferSource.start();
-              } catch {
-                setState("listening");
-              }
-            } else if (msg.turn_complete || msg.type === "turn_complete") {
-              setState("listening");
-            }
-          } catch {
-            /* ignore parse errors */
-          }
-          return;
-        }
-
-        setState("speaking");
-        const arrayBuffer =
-          event.data instanceof Blob ? await event.data.arrayBuffer() : event.data;
+      ws.onmessage = (event) => {
+        if (typeof event.data !== "string") return;
         try {
-          const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-          const bufferSource = audioCtx.createBufferSource();
-          bufferSource.buffer = audioBuffer;
-          bufferSource.connect(audioCtx.destination);
-          bufferSource.onended = () => setState("listening");
-          bufferSource.start();
+          const msg = JSON.parse(event.data);
+          if (msg.type === "ready") {
+            setState("listening");
+            return;
+          }
+          if (msg.type === "error" || msg.error) {
+            setError(typeof msg.error === "string" ? msg.error : "Voice server error");
+            setState("error");
+            return;
+          }
+          if (msg.type === "transcript" && msg.text) {
+            setTranscript((prev) => {
+              const last = prev[prev.length - 1];
+              // Merge streaming partials when possible
+              if (last && msg.text.startsWith(last.slice(0, Math.min(12, last.length)))) {
+                return [...prev.slice(0, -1), msg.text];
+              }
+              return [...prev, msg.text];
+            });
+          } else if (msg.text && !msg.audio) {
+            setTranscript((prev) => [...prev, msg.text]);
+          }
+          if (msg.audio) {
+            setState("speaking");
+            playQueueRef.current = playQueueRef.current
+              .then(() => playPcmBase64(audioCtx, msg.audio, 24000))
+              .then(() => {
+                if (stateRef.current === "speaking") setState("listening");
+              })
+              .catch(() => {
+                if (stateRef.current === "speaking") setState("listening");
+              });
+          }
+          if (msg.turn_complete || msg.type === "turn_complete" || msg.TurnComplete) {
+            void playQueueRef.current.then(() => setState("listening"));
+          }
         } catch {
-          setState("listening");
+          /* ignore parse errors */
         }
       };
 
       ws.onclose = () => {
-        if (state !== "paused") setState("idle");
+        try {
+          void captureCtx.close();
+        } catch {
+          /* ignore */
+        }
+        if (stateRef.current !== "paused" && stateRef.current !== "error") {
+          setState("idle");
+        }
       };
       ws.onerror = () => {
-        setError("Voice connection failed.");
+        setError("Voice connection failed. Check API URL and microphone.");
         setState("error");
         cleanup();
       };
@@ -165,7 +246,7 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
       setState("error");
       cleanup();
     }
-  }, [cleanup, state]);
+  }, [cleanup]);
 
   useEffect(() => {
     void startSession();
@@ -264,9 +345,7 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
             <motion.div
               className="absolute w-[280px] h-[280px] rounded-full bg-b-accent/10"
               animate={
-                reducedMotion || state === "paused"
-                  ? undefined
-                  : { scale: [1, 1.05, 1] }
+                reducedMotion || state === "paused" ? undefined : { scale: [1, 1.05, 1] }
               }
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             />
@@ -295,7 +374,7 @@ export default function VoiceAssistant({ onClose }: VoiceAssistantProps) {
             {state === "paused"
               ? "Tap the orb to resume listening."
               : state === "error"
-              ? "Check microphone permissions and try again."
+              ? error || "Check microphone permissions and try again."
               : "Butler is listening. Speak naturally."}
           </p>
 

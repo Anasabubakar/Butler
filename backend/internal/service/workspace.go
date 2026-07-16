@@ -66,12 +66,13 @@ func (s *WorkspaceService) GetBrief(ctx context.Context, userID string) (*worksp
 	token, err := s.GetGoogleToken(ctx, userID)
 	if err != nil {
 		return &workspace.Brief{
-			Connected: false,
-			Events:    []workspace.CalendarEvent{},
-			Tasks:     []workspace.Task{},
-			Emails:    []workspace.Email{},
-			Conflicts: []workspace.Conflict{},
-			FetchedAt: time.Now().UTC().Format(time.RFC3339),
+			Connected:  false,
+			Events:     []workspace.CalendarEvent{},
+			WeekEvents: []workspace.CalendarEvent{},
+			Tasks:      []workspace.Task{},
+			Emails:     []workspace.Email{},
+			Conflicts:  []workspace.Conflict{},
+			FetchedAt:  time.Now().UTC().Format(time.RFC3339),
 		}, nil
 	}
 	brief, err := s.google.FetchBrief(ctx, token)
@@ -81,6 +82,7 @@ func (s *WorkspaceService) GetBrief(ctx context.Context, userID string) (*worksp
 				Connected:    false,
 				TokenExpired: true,
 				Events:       []workspace.CalendarEvent{},
+				WeekEvents:   []workspace.CalendarEvent{},
 				Tasks:        []workspace.Task{},
 				Emails:       []workspace.Email{},
 				Conflicts:    []workspace.Conflict{},
@@ -90,6 +92,33 @@ func (s *WorkspaceService) GetBrief(ctx context.Context, userID string) (*worksp
 		return nil, err
 	}
 	return brief, nil
+}
+
+// CreateTask creates a Google Task for the user.
+func (s *WorkspaceService) CreateTask(ctx context.Context, userID, title, notes, due string) (*workspace.Task, error) {
+	token, err := s.GetGoogleToken(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("google not connected")
+	}
+	return s.google.CreateTask(ctx, token, title, notes, due)
+}
+
+// CompleteTask marks a Google Task complete.
+func (s *WorkspaceService) CompleteTask(ctx context.Context, userID, taskID string) error {
+	token, err := s.GetGoogleToken(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("google not connected")
+	}
+	return s.google.CompleteTask(ctx, token, taskID)
+}
+
+// SendGmail sends email with the vaulted Google token.
+func (s *WorkspaceService) SendGmail(ctx context.Context, userID, to, subject, body string) error {
+	token, err := s.GetGoogleToken(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("google not connected")
+	}
+	return s.google.SendGmail(ctx, token, to, subject, body)
 }
 
 // SyncResult summarizes proactive actions.

@@ -12,6 +12,7 @@ export default function DashboardHome() {
   const { user, hasWorkspace, getGoogleAccessToken, reconnectWorkspace } = useAuth();
   const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [weekEvents, setWeekEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [emails, setEmails] = useState<GmailMessage[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -21,6 +22,14 @@ export default function DashboardHome() {
 
   const applyBrief = useCallback((brief: {
     events?: Array<{
+      id: string;
+      summary: string;
+      start: string;
+      end: string;
+      description?: string;
+      location?: string;
+    }>;
+    weekEvents?: Array<{
       id: string;
       summary: string;
       start: string;
@@ -39,6 +48,7 @@ export default function DashboardHome() {
     connected?: boolean;
   }) => {
     setEvents((brief.events || []) as CalendarEvent[]);
+    setWeekEvents((brief.weekEvents || brief.events || []) as CalendarEvent[]);
     setTasks(
       (brief.tasks || []).map((t) => ({
         id: t.id,
@@ -211,10 +221,48 @@ export default function DashboardHome() {
 
   const liveWorkspace = hasWorkspace || serverConnected;
 
+  const handleCompleteTask = useCallback(
+    async (id: string) => {
+      // Optimistic UI
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, status: "completed" as const } : t))
+      );
+      try {
+        await api.workspace.completeTask(id);
+      } catch (err) {
+        console.error("complete task failed", err);
+        await fetchWorkspaceData();
+      }
+    },
+    [fetchWorkspaceData]
+  );
+
+  const handleAddTask = useCallback(
+    async (title: string) => {
+      try {
+        const t = await api.workspace.createTask({ title });
+        setTasks((prev) => [
+          {
+            id: t.id,
+            title: t.title,
+            due: t.due,
+            status: t.status === "completed" ? "completed" : "needsAction",
+          },
+          ...prev,
+        ]);
+      } catch (err) {
+        console.error("create task failed", err);
+        window.alert(err instanceof Error ? err.message : "Could not create task in Google Tasks");
+      }
+    },
+    []
+  );
+
   return (
     <CommandCenter
       user={user}
       events={events}
+      weekEvents={weekEvents}
       tasks={tasks}
       emails={emails}
       notes={notes}
@@ -242,6 +290,8 @@ export default function DashboardHome() {
       onOpenNotifications={() => router.push("/dashboard/notifications")}
       onOpenNotes={() => router.push("/dashboard/notes")}
       onOpenIntegrations={() => router.push("/dashboard/integrations")}
+      onCompleteTask={handleCompleteTask}
+      onAddTask={handleAddTask}
     />
   );
 }

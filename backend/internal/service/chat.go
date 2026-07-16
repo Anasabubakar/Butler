@@ -29,6 +29,7 @@ type ChatServiceResponse struct {
 	ModelUsed        string                  `json:"modelUsed"`
 	ThreadID         string                  `json:"threadId"`
 	ActionsQueued    int                     `json:"actionsQueued,omitempty"`
+	DelegationIDs    []string                `json:"delegationIds,omitempty"`
 }
 
 // ChatService provides business logic for chat interactions.
@@ -114,10 +115,10 @@ func (s *ChatService) SendMessage(ctx context.Context, userID string, req ChatRe
 		if err != nil {
 			return nil, fmt.Errorf("chat: gemini call: %w", err)
 		}
-		return s.persistModelReply(ctx, threadID, mode, geminiResp.Text, geminiResp.ThinkingText, geminiResp.GroundingSources, geminiResp.ModelUsed, 0)
+		return s.persistModelReply(ctx, threadID, mode, geminiResp.Text, geminiResp.ThinkingText, geminiResp.GroundingSources, geminiResp.ModelUsed, 0, nil)
 	}
 
-	text, thinking, actions, modelUsed, err := s.runAgent(ctx, userID, history)
+	text, thinking, actions, delIDs, modelUsed, err := s.runAgent(ctx, userID, history)
 	if err != nil {
 		messages := make([]model.Message, 0, len(history))
 		for _, m := range history {
@@ -127,13 +128,13 @@ func (s *ChatService) SendMessage(ctx context.Context, userID string, req ChatRe
 		if err2 != nil {
 			return nil, fmt.Errorf("chat: gemini call: %w", err2)
 		}
-		return s.persistModelReply(ctx, threadID, mode, geminiResp.Text, geminiResp.ThinkingText, geminiResp.GroundingSources, geminiResp.ModelUsed, 0)
+		return s.persistModelReply(ctx, threadID, mode, geminiResp.Text, geminiResp.ThinkingText, geminiResp.GroundingSources, geminiResp.ModelUsed, 0, nil)
 	}
 
-	return s.persistModelReply(ctx, threadID, mode, text, thinking, nil, modelUsed, actions)
+	return s.persistModelReply(ctx, threadID, mode, text, thinking, nil, modelUsed, actions, delIDs)
 }
 
-func (s *ChatService) runAgent(ctx context.Context, userID string, history []*model.ChatMessage) (string, string, int, string, error) {
+func (s *ChatService) runAgent(ctx context.Context, userID string, history []*model.ChatMessage) (string, string, int, []string, string, error) {
 	roles := make([]gemini.RoleText, 0, len(history))
 	for _, m := range history {
 		roles = append(roles, gemini.RoleText{Role: m.Role, Text: m.Text})
@@ -142,19 +143,23 @@ func (s *ChatService) runAgent(ctx context.Context, userID string, history []*mo
 
 	text, thinking, calls, modelUsed, err := s.geminiClient.ChatWithTools(ctx, contents, "")
 	if err != nil {
-		return "", "", 0, "", err
+		return "", "", 0, nil, "", err
 	}
 	if len(calls) == 0 {
-		return text, thinking, 0, modelUsed, nil
+		return text, thinking, 0, nil, modelUsed, nil
 	}
 
 	var results []gemini.FunctionResponse
 	var modelParts []gemini.PartExport
 	actions := 0
+	var delIDs []string
 	for _, call := range calls {
-		res, queued := s.executeTool(ctx, userID, call)
+		res, queued, delID := s.executeTool(ctx, userID, call)
 		if queued {
 			actions++
+		}
+		if delID != "" {
+			delIDs = append(delIDs, delID)
 		}
 		results = append(results, gemini.FunctionResponse{Name: call.Name, Response: res})
 		modelParts = append(modelParts, gemini.PartExport{
@@ -168,7 +173,7 @@ func (s *ChatService) runAgent(ctx context.Context, userID string, history []*mo
 		if text == "" && actions > 0 {
 			text = fmt.Sprintf("Boss, I prepared %d action(s) for your approval in Delegated Work.", actions)
 		}
-		return text, thinking, actions, modelUsed, nil
+		return text, thinking, actions, delIDs, modelUsed, nil
 	}
 	if final != "" {
 		text = final
@@ -176,10 +181,11 @@ func (s *ChatService) runAgent(ctx context.Context, userID string, history []*mo
 	if modelUsed2 != "" {
 		modelUsed = modelUsed2
 	}
-	return text, thinking, actions, modelUsed, nil
+	return text, thinking, actions, delIDs, modelUsed, nil
 }
 
-func (s *ChatService) executeTool(ctx context.Context, userID string, call gemini.FunctionCall) (map[string]any, bool) {
+// executeTool returns (result, queued, delegationID).
+func (s *ChatService) executeTool(ctx context.Context, userID string, call gemini.FunctionCall) (map[string]any, bool, string) {
 	args := call.Args
 	str := func(k string) string {
 		if args == nil {
@@ -192,37 +198,37 @@ func (s *ChatService) executeTool(ctx context.Context, userID string, call gemin
 	switch call.Name {
 	case "get_today_schedule":
 		if s.workspace == nil {
-			return map[string]any{"error": "workspace unavailable"}, false
+			return map[string]any{"error": "workspace unavailable"}, false, ""
 		}
 		brief, err := s.workspace.GetBrief(ctx, userID)
 		if err != nil || brief == nil || !brief.Connected {
-			return map[string]any{"connected": false, "events": []any{}}, false
+			return map[string]any{"connected": false, "events": []any{}}, false, ""
 		}
-		return map[string]any{"connected": true, "events": brief.Events, "conflicts": brief.Conflicts}, false
+		return map[string]any{"connected": true, "events": brief.Events, "weekEvents": brief.WeekEvents, "conflicts": brief.Conflicts}, false, ""
 
 	case "get_inbox_summary":
 		if s.workspace == nil {
-			return map[string]any{"error": "workspace unavailable"}, false
+			return map[string]any{"error": "workspace unavailable"}, false, ""
 		}
 		brief, err := s.workspace.GetBrief(ctx, userID)
 		if err != nil || brief == nil || !brief.Connected {
-			return map[string]any{"connected": false, "emails": []any{}}, false
+			return map[string]any{"connected": false, "emails": []any{}}, false, ""
 		}
-		return map[string]any{"connected": true, "emails": brief.Emails}, false
+		return map[string]any{"connected": true, "emails": brief.Emails}, false, ""
 
 	case "get_open_tasks":
 		if s.workspace == nil {
-			return map[string]any{"error": "workspace unavailable"}, false
+			return map[string]any{"error": "workspace unavailable"}, false, ""
 		}
 		brief, err := s.workspace.GetBrief(ctx, userID)
 		if err != nil || brief == nil || !brief.Connected {
-			return map[string]any{"connected": false, "tasks": []any{}}, false
+			return map[string]any{"connected": false, "tasks": []any{}}, false, ""
 		}
-		return map[string]any{"connected": true, "tasks": brief.Tasks}, false
+		return map[string]any{"connected": true, "tasks": brief.Tasks}, false, ""
 
 	case "draft_email_reply":
 		if s.delegations == nil {
-			return map[string]any{"error": "delegations unavailable"}, false
+			return map[string]any{"error": "delegations unavailable"}, false, ""
 		}
 		to, subject, body := str("to"), str("subject"), str("body")
 		title := "Reply to " + to
@@ -234,13 +240,13 @@ func (s *ChatService) executeTool(ctx context.Context, userID string, call gemin
 			Tone: "accent", ToneLabel: "draft · awaiting send",
 		})
 		if err != nil {
-			return map[string]any{"error": err.Error()}, false
+			return map[string]any{"error": err.Error()}, false, ""
 		}
-		return map[string]any{"queued": true, "delegationId": d.ID, "status": "awaiting_approval"}, true
+		return map[string]any{"queued": true, "delegationId": d.ID, "status": "awaiting_approval"}, true, d.ID
 
 	case "propose_calendar_change":
 		if s.delegations == nil {
-			return map[string]any{"error": "delegations unavailable"}, false
+			return map[string]any{"error": "delegations unavailable"}, false, ""
 		}
 		title, details := str("title"), str("details")
 		d, err := s.delegations.Create(ctx, userID, model.CreateDelegationRequest{
@@ -248,13 +254,13 @@ func (s *ChatService) executeTool(ctx context.Context, userID string, call gemin
 			Tone: "warning", ToneLabel: "calendar · awaiting approval",
 		})
 		if err != nil {
-			return map[string]any{"error": err.Error()}, false
+			return map[string]any{"error": err.Error()}, false, ""
 		}
-		return map[string]any{"queued": true, "delegationId": d.ID}, true
+		return map[string]any{"queued": true, "delegationId": d.ID}, true, d.ID
 
 	case "remember_note":
 		if s.notes == nil {
-			return map[string]any{"error": "notes unavailable"}, false
+			return map[string]any{"error": "notes unavailable"}, false, ""
 		}
 		title, content, tag := str("title"), str("content"), str("tag")
 		if tag == "" {
@@ -264,13 +270,13 @@ func (s *ChatService) executeTool(ctx context.Context, userID string, call gemin
 			Title: title, Content: content, Tag: tag, Color: "#F5EFE6",
 		})
 		if err != nil {
-			return map[string]any{"error": err.Error()}, false
+			return map[string]any{"error": err.Error()}, false, ""
 		}
-		return map[string]any{"saved": true, "noteId": n.ID}, false
+		return map[string]any{"saved": true, "noteId": n.ID}, false, ""
 
 	case "propose_delegation":
 		if s.delegations == nil {
-			return map[string]any{"error": "delegations unavailable"}, false
+			return map[string]any{"error": "delegations unavailable"}, false, ""
 		}
 		title, service, contextStr, draft := str("title"), str("service"), str("context"), str("draft")
 		if service == "" {
@@ -281,12 +287,12 @@ func (s *ChatService) executeTool(ctx context.Context, userID string, call gemin
 			Tone: "accent", ToneLabel: "awaiting approval",
 		})
 		if err != nil {
-			return map[string]any{"error": err.Error()}, false
+			return map[string]any{"error": err.Error()}, false, ""
 		}
-		return map[string]any{"queued": true, "delegationId": d.ID}, true
+		return map[string]any{"queued": true, "delegationId": d.ID}, true, d.ID
 
 	default:
-		return map[string]any{"error": "unknown tool " + call.Name}, false
+		return map[string]any{"error": "unknown tool " + call.Name}, false, ""
 	}
 }
 
@@ -298,6 +304,7 @@ func (s *ChatService) persistModelReply(
 	sources []model.GroundingSource,
 	modelUsed string,
 	actions int,
+	delIDs []string,
 ) (*ChatServiceResponse, error) {
 	if text == "" && actions > 0 {
 		text = fmt.Sprintf("Done Boss — I queued %d action(s) for your approval in Delegated Work.", actions)
@@ -339,6 +346,7 @@ func (s *ChatService) persistModelReply(
 	return &ChatServiceResponse{
 		Text: text, ThinkingText: thinking, GroundingSources: sources,
 		ModelUsed: modelUsed, ThreadID: threadID, ActionsQueued: actions,
+		DelegationIDs: delIDs,
 	}, nil
 }
 
