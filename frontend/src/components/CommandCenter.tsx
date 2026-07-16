@@ -5,6 +5,7 @@ import type { CalendarEvent, GmailMessage, Task, Note, Delegation } from "@/type
 import Card from "./Card";
 import Button from "./Button";
 import EmailCoverflow from "./EmailCoverflow";
+import FlickerText, { GREETING_FLICKER } from "./FlickerText";
 
 interface CommandCenterProps {
   user: User | null;
@@ -93,17 +94,35 @@ export default function CommandCenter({
       </div>
 
       <div className="px-8 pt-8 pb-4">
-        <h1 className="display-m text-b-text-primary">
-          {greeting.line}
-          {greeting.includeName && (
-            <>
-              {" "}
-              <em className="display-italic" style={{ fontStyle: "italic" }}>
-                {displayName}.
-              </em>
-            </>
-          )}
-        </h1>
+        <FlickerText
+          key={`${greeting.state}-${displayName}`}
+          text={
+            greeting.includeName
+              ? `${greeting.line}, ${displayName}.`
+              : `${greeting.line}.`
+          }
+          tag="h1"
+          fontColor="#1C1815"
+          colorMode="solid"
+          font={{
+            fontFamily: "var(--font-serif), Georgia, serif",
+            fontWeight: 300,
+            fontSize: "clamp(36px, 4.5vw, 48px)",
+            lineHeight: "1.1em",
+            letterSpacing: "-0.04em",
+          }}
+          className="display-m"
+          {...GREETING_FLICKER}
+          flicker={{
+            ...GREETING_FLICKER.flicker,
+            strokeColor: "#1C1815",
+          }}
+          flickerHover={{
+            ...GREETING_FLICKER.flickerHover,
+            strokeColor: "#1C1815",
+            restState: "filled",
+          }}
+        />
         <p className="body-lg mt-3 text-b-text-secondary">
           {!hasWorkspace
             ? "Connect Google Workspace to load your calendar, mail, and tasks."
