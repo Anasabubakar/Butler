@@ -5,6 +5,7 @@ import type { CalendarEvent, GmailMessage, Task, Note, Delegation } from "@/type
 import Card from "./Card";
 import Button from "./Button";
 import EmailCoverflow from "./EmailCoverflow";
+import ExpandingSearch from "./ExpandingSearch";
 import FlickerText, { GREETING_FLICKER } from "./FlickerText";
 
 interface CommandCenterProps {
@@ -66,25 +67,29 @@ export default function CommandCenter({
 
   return (
     <div className="w-full h-full overflow-y-auto bg-b-canvas">
-      <div className="h-16 flex items-center justify-between px-8 border-b border-b-border-subtle">
-        <div className="body-sm text-b-text-tertiary">
+      <div className="h-16 flex items-center justify-between gap-4 px-8 border-b border-b-border-subtle">
+        <div className="body-sm text-b-text-tertiary shrink-0">
           Command Center · {dayLine}
         </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] w-[min(100%,340px)] bg-b-paper border border-b-border-subtle">
-          <span className="body-md text-b-text-tertiary" aria-hidden>
-            ⌕
-          </span>
-          <button
-            type="button"
-            onClick={onOpenChat}
-            className="flex-1 text-left body-sm text-b-text-tertiary"
-          >
-            Ask Butler anything
-          </button>
+        <div className="flex items-center gap-2 min-w-0">
+          <ExpandingSearch
+            placeholder="Ask Butler…"
+            aria-label="Search or ask Butler"
+            collapsedWidth={56}
+            expandedWidth={260}
+            onSearch={(query) => {
+              try {
+                sessionStorage.setItem("butler_search_handoff", query);
+              } catch {
+                /* ignore */
+              }
+              onOpenChat();
+            }}
+          />
           <button
             type="button"
             onClick={onRefresh}
-            className="mono-label shrink-0 text-b-accent-text disabled:opacity-50"
+            className="h-11 w-11 shrink-0 rounded-[10px] border border-b-border-subtle bg-b-paper mono-label text-b-accent-text disabled:opacity-50 hover:bg-b-sunken transition-colors cursor-pointer"
             disabled={isLoading}
             aria-label="Refresh workspace data"
           >

@@ -82,6 +82,24 @@ export default function ChatInterface() {
     loadThreads();
   }, [loadThreads]);
 
+  // Prefill from Command Center expanding search or Voice Room handoff
+  useEffect(() => {
+    try {
+      const search = sessionStorage.getItem("butler_search_handoff");
+      const voice = sessionStorage.getItem("butler_voice_handoff");
+      const handoff = search || voice;
+      if (handoff) {
+        setInput(handoff);
+        sessionStorage.removeItem("butler_search_handoff");
+        sessionStorage.removeItem("butler_voice_handoff");
+        setActiveThreadId("new");
+        setThreadId(undefined);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
