@@ -40,34 +40,71 @@ function getFirebaseAuth(): Auth | null {
 
 export const auth = (typeof window !== "undefined" ? getFirebaseAuth() : null) as Auth;
 
+/**
+ * Workspace scopes Butler actually uses today.
+ * Keep this list tight — extra restricted scopes (full Drive, Contacts, Docs…)
+ * make Google return 403 access_denied for unverified / Testing apps.
+ *
+ * Must also be enabled on the Google Cloud OAuth consent screen for client
+ * 553230082923-….apps.googleusercontent.com (Firebase project api-with-ay).
+ */
+const GOOGLE_WORKSPACE_SCOPES = [
+  "openid",
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile",
+  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/gmail.modify",
+  "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/tasks",
+];
+
 function buildProvider() {
   const provider = new GoogleAuthProvider();
-  // Broad Workspace access — must match what the Google Cloud OAuth consent screen allows.
-  const googleScopes = [
-    "https://www.googleapis.com/auth/drive",
-    "https://www.googleapis.com/auth/drive.file",
-    "https://www.googleapis.com/auth/drive.metadata",
-    "https://www.googleapis.com/auth/calendar",
-    "https://www.googleapis.com/auth/calendar.events",
-    "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/gmail.compose",
-    "https://www.googleapis.com/auth/gmail.send",
-    "https://www.googleapis.com/auth/gmail.settings.basic",
-    "https://www.googleapis.com/auth/tasks",
-    "https://www.googleapis.com/auth/contacts",
-    "https://www.googleapis.com/auth/contacts.readonly",
-    "https://www.googleapis.com/auth/directory.readonly",
-    "https://www.googleapis.com/auth/documents",
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/presentations",
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/userinfo.profile",
-  ];
-  for (const scope of googleScopes) {
+  for (const scope of GOOGLE_WORKSPACE_SCOPES) {
     provider.addScope(scope);
   }
+  // consent forces scope grant; offline is best-effort with popup (Firebase
+  // mainly returns short-lived access tokens for Workspace API calls).
   provider.setCustomParameters({ prompt: "consent", access_type: "offline" });
   return provider;
+}
+
+/** Human-readable message for Google OAuth / Firebase auth failures. */
+export function formatGoogleAuthError(error: unknown): string {
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: string }).code || "")
+      : "";
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+      ? error
+      : "";
+
+  if (
+    code === "auth/access-denied" ||
+    /access_denied|403|access denied/i.test(message) ||
+    /access_denied/i.test(code)
+  ) {
+    return [
+      "Google blocked this sign-in (403 access_denied).",
+      "If the OAuth app is in Testing mode, add this Gmail as a Test user in",
+      "Google Cloud → APIs & Services → OAuth consent screen → Test users.",
+      "Also confirm butler.pxxl.run is an Authorized domain in Firebase and Google Cloud.",
+    ].join(" ");
+  }
+  if (code === "auth/popup-closed-by-user" || /popup-closed/i.test(code)) {
+    return "Sign-in window was closed before finishing.";
+  }
+  if (code === "auth/popup-blocked") {
+    return "Browser blocked the Google popup. Allow popups for this site and try again.";
+  }
+  if (code === "auth/unauthorized-domain") {
+    return "This domain is not authorized in Firebase Authentication → Settings → Authorized domains. Add butler.pxxl.run.";
+  }
+  return message || "Google sign-in failed.";
 }
 
 function persistGoogleToken(token: string | null) {

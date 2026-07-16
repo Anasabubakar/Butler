@@ -16,6 +16,7 @@ import {
   reconnectGoogleWorkspace,
   hasGoogleWorkspace,
   getAccessToken,
+  formatGoogleAuthError,
 } from "@/lib/firebase";
 
 interface AuthContextValue {

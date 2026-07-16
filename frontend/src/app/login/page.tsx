@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import AuthScreen from "@/components/AuthScreen";
+import { formatGoogleAuthError } from "@/lib/firebase";
 
 export default function AuthPage() {
   const { user, loading, signIn } = useAuth();
@@ -26,7 +27,7 @@ export default function AuthPage() {
       await signIn();
       router.replace("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Sign-in failed");
+      setError(formatGoogleAuthError(err));
     } finally {
       setIsSigningIn(false);
     }

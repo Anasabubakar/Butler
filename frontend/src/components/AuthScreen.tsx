@@ -11,10 +11,10 @@ interface AuthScreenProps {
 }
 
 const SCOPES: Array<[string, string]> = [
-  ["Gmail", "read, draft, send in your voice"],
-  ["Calendar", "see, hold, and negotiate windows"],
-  ["Drive & Docs", "read, write, organize files"],
-  ["Tasks & Contacts", "remember people, keep the ledger"],
+  ["Gmail", "read, draft, and send in your voice"],
+  ["Calendar", "see the day and hold windows"],
+  ["Tasks", "open list and mark things done"],
+  ["Profile", "name and email so Butler knows you"],
 ];
 
 const NOTE_PARAGRAPHS = [
