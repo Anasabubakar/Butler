@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import type { Delegation } from "@/types";
 import Card from "./Card";
 import Button from "./Button";
+import GlidingTabs from "./GlidingTabs";
 
 type FilterKey = "awaiting" | "in_flight" | "approved" | "rejected" | "all";
 
@@ -201,22 +202,14 @@ export default function TaskDelegation() {
           </Button>
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-8">
-          {filters.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              className={`px-3.5 py-2 rounded-full mono-label transition-colors cursor-pointer ${
-                filter === key
-                  ? "bg-b-ink text-b-text-inverse"
-                  : "border border-b-border-default text-b-text-secondary hover:text-b-text-primary"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <GlidingTabs
+          className="mt-8"
+          variant="pill"
+          aria-label="Delegation filters"
+          tabs={filters}
+          value={filter}
+          onChange={(key) => setFilter(key as FilterKey)}
+        />
 
         {error && (
           <p className="body-sm text-b-danger mt-6" role="alert">

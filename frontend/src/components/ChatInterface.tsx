@@ -6,6 +6,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import type { Message, ChatMode, ChatThread } from "@/types";
 import ButlerLogo from "./ButlerLogo";
+import GlidingTabs from "./GlidingTabs";
 import { fadeUp, usePrefersReducedMotion } from "@/lib/motion";
 
 const MODES: { key: ChatMode; label: string }[] = [
@@ -338,24 +339,14 @@ export default function ChatInterface() {
           <div className="rounded-[20px] border border-b-border-default bg-b-raised shadow-[0_8px_24px_rgba(26,15,8,0.08)] p-5">
             <p className="body-lg text-b-text-tertiary mb-4">Ask Butler — or paste, dictate, plan.</p>
 
-            <div className="flex flex-wrap gap-1 p-1.5 rounded-full bg-b-sunken w-fit mb-4" role="tablist" aria-label="Chat mode">
-              {MODES.map((m) => (
-                <button
-                  key={m.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === m.key}
-                  onClick={() => setMode(m.key)}
-                  className={`px-3 py-1.5 rounded-full body-sm-med transition-colors cursor-pointer ${
-                    mode === m.key
-                      ? "bg-b-raised text-b-text-primary shadow-sm"
-                      : "text-b-text-secondary hover:text-b-text-primary"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
+            <GlidingTabs
+              className="mb-4"
+              variant="pill"
+              aria-label="Chat mode"
+              tabs={MODES.map((m) => ({ key: m.key, label: m.label }))}
+              value={mode}
+              onChange={(key) => setMode(key as ChatMode)}
+            />
 
             <div className="flex items-center gap-3">
               <label htmlFor="butler-chat-input" className="sr-only">

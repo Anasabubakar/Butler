@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { api } from "@/lib/api";
 import type { Notification } from "@/types";
 import Button from "./Button";
+import GlidingTabs from "./GlidingTabs";
 
 type TabKey = "unread" | "read" | "all";
 
@@ -144,23 +145,14 @@ export default function NotificationCenter() {
           ))}
         </div>
 
-        <div className="flex flex-wrap gap-6 mt-10 border-b border-b-border-subtle pb-3">
-          {tabs.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
-              className={`pb-1 relative body-md-med transition-colors cursor-pointer ${
-                tab === key ? "text-b-text-primary" : "text-b-text-tertiary hover:text-b-text-secondary"
-              }`}
-            >
-              {label}
-              {tab === key && (
-                <span className="absolute left-0 right-0 -bottom-3 h-0.5 bg-b-accent" />
-              )}
-            </button>
-          ))}
-        </div>
+        <GlidingTabs
+          className="mt-10"
+          variant="underline"
+          aria-label="Notification filters"
+          tabs={tabs}
+          value={tab}
+          onChange={(key) => setTab(key as TabKey)}
+        />
 
         <div className="mt-8 space-y-3">
           {error && (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Card from "./Card";
 import Button from "./Button";
+import GlidingTabs from "./GlidingTabs";
 import { api, type IntegrationCatalogItem } from "@/lib/api";
 import { getAccessToken } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -183,31 +184,19 @@ export default function Integrations({ hasWorkspace, onConnectWorkspace }: Integ
           </p>
         )}
 
-        <div className="mt-8 flex gap-6 border-b border-b-border-subtle">
-          {(
-            [
-              ["all", `All · ${items.length || "—"}`],
-              ["connected", `Connected · ${connected.length}`],
-              ["available", `Available · ${available.length}`],
-              ["coming_soon", `Coming soon · ${coming.length}`],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
-              className="pb-3 relative"
-              style={{
-                color: tab === key ? "var(--color-b-text-primary)" : "var(--color-b-text-tertiary)",
-              }}
-            >
-              <span className="body-md-med">{label}</span>
-              {tab === key && (
-                <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-b-accent" />
-              )}
-            </button>
-          ))}
-        </div>
+        <GlidingTabs
+          className="mt-8"
+          variant="underline"
+          aria-label="Integration filters"
+          tabs={[
+            { key: "all", label: `All · ${items.length || "—"}` },
+            { key: "connected", label: `Connected · ${connected.length}` },
+            { key: "available", label: `Available · ${available.length}` },
+            { key: "coming_soon", label: `Coming soon · ${coming.length}` },
+          ]}
+          value={tab}
+          onChange={(key) => setTab(key as TabKey)}
+        />
 
         <div className="mt-8 mb-2">
           <div className="mono-label text-b-accent-text">Your household</div>

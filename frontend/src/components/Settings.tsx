@@ -5,6 +5,7 @@ import type { User } from "firebase/auth";
 import Card from "./Card";
 import Chip from "./Chip";
 import Button from "./Button";
+import GlidingTabs from "./GlidingTabs";
 import { api } from "@/lib/api";
 import type { UserSettings } from "@/types";
 
@@ -212,25 +213,16 @@ export default function Settings({
             <div className="body-sm mb-4 text-b-text-tertiary">
               Preferred model path when you open a new conversation.
             </div>
-            <div className="flex flex-wrap gap-2">
-              {["general", "low-latency", "thinking", "search", "maps"].map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => {
-                    setChatMode(m);
-                    save({ chatMode: m });
-                  }}
-                  className={`px-3 py-2 rounded-full mono-label cursor-pointer transition-colors ${
-                    chatMode === m
-                      ? "bg-b-ink text-b-text-inverse"
-                      : "border border-b-border-default text-b-text-secondary"
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
+            <GlidingTabs
+              variant="pill"
+              aria-label="Default chat mode"
+              tabs={["general", "low-latency", "thinking", "search", "maps"]}
+              value={chatMode || "general"}
+              onChange={(m) => {
+                setChatMode(m);
+                save({ chatMode: m });
+              }}
+            />
           </Card>
 
           <Card tone="paper" className="p-6">
