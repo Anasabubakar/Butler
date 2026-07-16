@@ -77,13 +77,6 @@ func BuildAuthURL(def Definition, cfg OAuthConfig, state string) string {
 		if len(def.DefaultScopes) > 0 {
 			q.Set("scope", strings.Join(def.DefaultScopes, " "))
 		}
-	case ProviderMicrosoft:
-		if len(def.DefaultScopes) > 0 {
-			q.Set("scope", strings.Join(def.DefaultScopes, " "))
-		}
-		q.Set("response_mode", "query")
-	case ProviderDropbox:
-		q.Set("token_access_type", "offline")
 	case ProviderAsana:
 		// Asana uses default scopes on the app
 	case ProviderTrello:
@@ -129,10 +122,6 @@ func ExchangeCode(ctx context.Context, def Definition, cfg OAuthConfig, code str
 	case ProviderFigma:
 		return exchangeFigma(ctx, def, cfg, code)
 	case ProviderDiscord:
-		return exchangeForm(ctx, def, cfg, code)
-	case ProviderMicrosoft:
-		return exchangeForm(ctx, def, cfg, code)
-	case ProviderDropbox:
 		return exchangeForm(ctx, def, cfg, code)
 	case ProviderAsana:
 		return exchangeForm(ctx, def, cfg, code)
@@ -368,8 +357,6 @@ func fetchUserLabel(ctx context.Context, def Definition, accessToken string) (la
 		return str(raw["user"]), str(raw["user_id"]), nil
 	case ProviderDiscord:
 		return firstNonEmpty(str(raw["global_name"]), str(raw["username"])), str(raw["id"]), nil
-	case ProviderMicrosoft:
-		return firstNonEmpty(str(raw["displayName"]), str(raw["mail"]), str(raw["userPrincipalName"])), str(raw["id"]), nil
 	case ProviderFigma:
 		return firstNonEmpty(str(raw["handle"]), str(raw["email"])), str(raw["id"]), nil
 	case ProviderAsana:

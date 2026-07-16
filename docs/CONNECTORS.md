@@ -131,7 +131,7 @@ Examples:
 7. Redeploy backend → save Interactions URL in Discord → should show verified.  
 8. Butler → Integrations → Discord → Connect  
 
-## Baby steps: Figma / Microsoft / Dropbox / Asana
+## Baby steps: Asana / Trello
 
 Same pattern:
 
@@ -142,6 +142,8 @@ Same pattern:
 5. Click **Connect** in Butler  
 
 Console links appear on each card when status is **not configured**.
+
+Microsoft 365 and Dropbox were removed from the product catalog.
 
 ---
 

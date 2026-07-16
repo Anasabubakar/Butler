@@ -10,10 +10,8 @@ const (
 	ProviderNotion    ProviderID = "notion"
 	ProviderLinear    ProviderID = "linear"
 	ProviderFigma     ProviderID = "figma"
-	ProviderDiscord   ProviderID = "discord"
-	ProviderMicrosoft ProviderID = "microsoft"
-	ProviderDropbox   ProviderID = "dropbox"
-	ProviderAsana     ProviderID = "asana"
+	ProviderDiscord ProviderID = "discord"
+	ProviderAsana   ProviderID = "asana"
 	ProviderTrello    ProviderID = "trello"
 	ProviderZapier    ProviderID = "zapier"
 	ProviderN8N       ProviderID = "n8n"
@@ -168,48 +166,6 @@ var Catalog = []Definition{
 		ClientIDEnv: "DISCORD_CLIENT_ID", ClientSecretEnv: "DISCORD_CLIENT_SECRET",
 		DocsURL:   "https://discord.com/developers/applications",
 		SetupHint: "Discord OAuth2 → enable all scopes you want Butler to request",
-	},
-	{
-		ID: ProviderMicrosoft, Name: "Microsoft 365", Role: "mail · calendar · files · chat",
-		Scopes: "Broad Microsoft Graph delegated access", Group: "work", AuthType: "oauth",
-		AuthURL: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-		TokenURL: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-		UserInfoURL: "https://graph.microsoft.com/v1.0/me",
-		DefaultScopes: []string{
-			"offline_access", "openid", "profile", "email",
-			"User.Read", "User.ReadWrite", "User.ReadBasic.All", "User.Read.All",
-			"Mail.Read", "Mail.ReadWrite", "Mail.Send", "Mail.Read.Shared", "Mail.ReadWrite.Shared",
-			"Calendars.Read", "Calendars.ReadWrite", "Calendars.Read.Shared", "Calendars.ReadWrite.Shared",
-			"Contacts.Read", "Contacts.ReadWrite",
-			"Files.Read", "Files.ReadWrite", "Files.Read.All", "Files.ReadWrite.All", "Sites.Read.All", "Sites.ReadWrite.All",
-			"Notes.Read", "Notes.ReadWrite",
-			"Tasks.Read", "Tasks.ReadWrite",
-			"Chat.Read", "Chat.ReadWrite", "ChannelMessage.Read.All", "ChannelMessage.Send",
-			"Team.ReadBasic.All", "Channel.ReadBasic.All",
-			"OnlineMeetings.Read", "OnlineMeetings.ReadWrite",
-			"Presence.Read", "Presence.Read.All",
-		},
-		ClientIDEnv: "MICROSOFT_CLIENT_ID", ClientSecretEnv: "MICROSOFT_CLIENT_SECRET",
-		DocsURL:   "https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps",
-		SetupHint: "Azure App registration → API permissions → add all Graph delegated permissions above",
-	},
-	{
-		ID: ProviderDropbox, Name: "Dropbox", Role: "the files",
-		Scopes: "Full Dropbox account file access", Group: "work", AuthType: "oauth",
-		AuthURL: "https://www.dropbox.com/oauth2/authorize",
-		TokenURL: "https://api.dropboxapi.com/oauth2/token",
-		DefaultScopes: []string{
-			"account_info.read", "account_info.write",
-			"files.metadata.read", "files.metadata.write",
-			"files.content.read", "files.content.write",
-			"files.permanent_delete",
-			"sharing.read", "sharing.write",
-			"file_requests.read", "file_requests.write",
-			"contacts.read", "contacts.write",
-		},
-		ClientIDEnv: "DROPBOX_CLIENT_ID", ClientSecretEnv: "DROPBOX_CLIENT_SECRET",
-		DocsURL:   "https://www.dropbox.com/developers/apps",
-		SetupHint: "Dropbox app → Permissions tab → enable all scopes Butler requests",
 	},
 	{
 		ID: ProviderAsana, Name: "Asana", Role: "the projects",
