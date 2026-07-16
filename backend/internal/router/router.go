@@ -46,10 +46,13 @@ func New(h Handlers, auth *middleware.FirebaseAuth, corsOrigins []string) chi.Ro
 	// OAuth provider callbacks (authenticated via short-lived state, not Firebase).
 	r.Get("/api/integrations/callback/{provider}", h.Integrations.Callback)
 
-	// Provider webhooks (no Firebase auth — verified via signing secrets).
+	// Provider webhooks / interactions (no Firebase auth — verified via signing secrets).
 	if h.Webhooks != nil {
 		r.Post("/api/webhooks/linear", h.Webhooks.Linear)
 		r.Post("/api/webhooks/slack", h.Webhooks.Slack)
+		// Discord Interactions Endpoint URL (verification PING + interactions)
+		r.Post("/api/webhooks/discord", h.Webhooks.Discord)
+		r.Post("/api/integrations/discord/interactions", h.Webhooks.Discord)
 	}
 
 	r.Route("/api", func(api chi.Router) {

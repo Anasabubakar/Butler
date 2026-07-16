@@ -113,7 +113,25 @@ Examples:
 
 ---
 
-## Baby steps: Figma / Discord / Microsoft / Dropbox / Asana
+## Baby steps: Discord
+
+1. https://discord.com/developers/applications → New Application  
+2. **OAuth2 → Redirects**:  
+   `https://butler-p395.onrender.com/api/integrations/callback/discord`  
+3. Copy **Client ID**, **Client Secret**, **Public Key**  
+4. Render env:  
+   - `DISCORD_CLIENT_ID`  
+   - `DISCORD_CLIENT_SECRET`  
+   - `DISCORD_PUBLIC_KEY`  
+   - `DISCORD_APPLICATION_ID` (same as Client ID usually)  
+5. **Interactions Endpoint URL** (optional but needed if Discord tries to verify it):  
+   `https://butler-p395.onrender.com/api/webhooks/discord`  
+   Butler answers Discord’s PING with signature verification.  
+6. **Linked Roles / ToS / Privacy** — optional for OAuth Connect (fill later for public listing).  
+7. Redeploy backend → save Interactions URL in Discord → should show verified.  
+8. Butler → Integrations → Discord → Connect  
+
+## Baby steps: Figma / Microsoft / Dropbox / Asana
 
 Same pattern:
 
