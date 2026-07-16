@@ -65,6 +65,7 @@ type Note struct {
 	Content   string    `json:"content"`
 	Color     string    `json:"color,omitempty"`
 	Tag       string    `json:"tag,omitempty"`
+	Image     string    `json:"image,omitempty"` // data URL or remote URL for polaroid stickies
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -75,6 +76,7 @@ type CreateNoteRequest struct {
 	Content string `json:"content"`
 	Color   string `json:"color,omitempty"`
 	Tag     string `json:"tag,omitempty"`
+	Image   string `json:"image,omitempty"`
 }
 
 // UpdateNoteRequest is the payload for updating a note.
@@ -83,6 +85,7 @@ type UpdateNoteRequest struct {
 	Content *string `json:"content,omitempty"`
 	Color   *string `json:"color,omitempty"`
 	Tag     *string `json:"tag,omitempty"`
+	Image   *string `json:"image,omitempty"`
 }
 
 // Delegation represents a delegated task awaiting approval.

@@ -108,13 +108,17 @@ export const api = {
       content: string;
       color?: string;
       tag?: string;
+      image?: string;
     }) =>
       request<Note>("/api/notes", {
         method: "POST",
         body: JSON.stringify(data),
       }),
 
-    update: (id: string, data: Partial<Pick<Note, "title" | "content" | "color" | "tag">>) =>
+    update: (
+      id: string,
+      data: Partial<Pick<Note, "title" | "content" | "color" | "tag" | "image">>
+    ) =>
       request<Note>(`/api/notes/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),

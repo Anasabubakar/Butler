@@ -23,6 +23,8 @@ export interface Note {
   updatedAt: string;
   color?: string;
   tag?: string;
+  /** data URL or remote image for polaroid stickies */
+  image?: string;
 }
 
 export interface Task {

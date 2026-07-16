@@ -110,16 +110,16 @@ func NewPgNotesRepository(pool *pgxpool.Pool) *PgNotesRepository {
 
 func (r *PgNotesRepository) Create(ctx context.Context, note *model.Note) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO notes (id, user_id, title, content, color, tag, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		note.ID, note.UserID, note.Title, note.Content, note.Color, note.Tag, note.CreatedAt, note.UpdatedAt,
+		`INSERT INTO notes (id, user_id, title, content, color, tag, image, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		note.ID, note.UserID, note.Title, note.Content, note.Color, note.Tag, note.Image, note.CreatedAt, note.UpdatedAt,
 	)
 	return err
 }
 
 func (r *PgNotesRepository) GetAllByUser(ctx context.Context, userID string) ([]*model.Note, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, user_id, title, content, color, tag, created_at, updated_at
+		`SELECT id, user_id, title, content, color, tag, COALESCE(image, ''), created_at, updated_at
 		 FROM notes WHERE user_id = $1 ORDER BY updated_at DESC`, userID,
 	)
 	if err != nil {
@@ -130,7 +130,7 @@ func (r *PgNotesRepository) GetAllByUser(ctx context.Context, userID string) ([]
 	var notes []*model.Note
 	for rows.Next() {
 		n := &model.Note{}
-		if err := rows.Scan(&n.ID, &n.UserID, &n.Title, &n.Content, &n.Color, &n.Tag, &n.CreatedAt, &n.UpdatedAt); err != nil {
+		if err := rows.Scan(&n.ID, &n.UserID, &n.Title, &n.Content, &n.Color, &n.Tag, &n.Image, &n.CreatedAt, &n.UpdatedAt); err != nil {
 			return nil, err
 		}
 		notes = append(notes, n)
@@ -141,9 +141,9 @@ func (r *PgNotesRepository) GetAllByUser(ctx context.Context, userID string) ([]
 func (r *PgNotesRepository) GetByID(ctx context.Context, id string) (*model.Note, error) {
 	n := &model.Note{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, user_id, title, content, color, tag, created_at, updated_at
+		`SELECT id, user_id, title, content, color, tag, COALESCE(image, ''), created_at, updated_at
 		 FROM notes WHERE id = $1`, id,
-	).Scan(&n.ID, &n.UserID, &n.Title, &n.Content, &n.Color, &n.Tag, &n.CreatedAt, &n.UpdatedAt)
+	).Scan(&n.ID, &n.UserID, &n.Title, &n.Content, &n.Color, &n.Tag, &n.Image, &n.CreatedAt, &n.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +152,8 @@ func (r *PgNotesRepository) GetByID(ctx context.Context, id string) (*model.Note
 
 func (r *PgNotesRepository) Update(ctx context.Context, note *model.Note) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE notes SET title = $1, content = $2, color = $3, tag = $4, updated_at = $5 WHERE id = $6`,
-		note.Title, note.Content, note.Color, note.Tag, note.UpdatedAt, note.ID,
+		`UPDATE notes SET title = $1, content = $2, color = $3, tag = $4, image = $5, updated_at = $6 WHERE id = $7`,
+		note.Title, note.Content, note.Color, note.Tag, note.Image, note.UpdatedAt, note.ID,
 	)
 	return err
 }

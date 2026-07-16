@@ -30,6 +30,7 @@ func (s *NotesService) Create(ctx context.Context, userID string, req model.Crea
 		Content:   req.Content,
 		Color:     req.Color,
 		Tag:       req.Tag,
+		Image:     req.Image,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -71,6 +72,9 @@ func (s *NotesService) Update(ctx context.Context, userID string, id string, req
 	}
 	if req.Tag != nil {
 		note.Tag = *req.Tag
+	}
+	if req.Image != nil {
+		note.Image = *req.Image
 	}
 	note.UpdatedAt = time.Now().UTC()
 

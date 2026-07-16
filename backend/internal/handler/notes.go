@@ -37,15 +37,19 @@ func (h *NotesHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *NotesHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r.Context())
 
+	// Allow modest image data URLs on polaroid stickies (~2.5MB)
 	var req model.CreateNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 3<<20)).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	if req.Title == "" {
-		writeError(w, http.StatusBadRequest, "title is required")
+	if req.Title == "" && req.Image == "" {
+		writeError(w, http.StatusBadRequest, "title or image is required")
 		return
+	}
+	if req.Title == "" {
+		req.Title = "Photo"
 	}
 
 	note, err := h.svc.Create(r.Context(), userID, req)
@@ -63,7 +67,7 @@ func (h *NotesHandler) Update(w http.ResponseWriter, r *http.Request) {
 	noteID := chi.URLParam(r, "id")
 
 	var req model.UpdateNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 3<<20)).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
