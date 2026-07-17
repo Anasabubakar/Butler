@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
   type CSSProperties,
 } from "react";
 
@@ -49,7 +50,13 @@ export default function GlidingTabs({
   className = "",
   "aria-label": ariaLabel = "Tabs",
 }: GlidingTabsProps) {
-  const tabs = normalize(rawTabs);
+  const serializedTabs = useMemo(() => {
+    return rawTabs
+      .map((t) => (typeof t === "string" ? t : `${t.key}:${t.label}`))
+      .join("|");
+  }, [rawTabs]);
+
+  const tabs = useMemo(() => normalize(rawTabs), [serializedTabs, rawTabs]);
   const controlled = value !== undefined;
   const [internal, setInternal] = useState(
     defaultValue ?? value ?? tabs[0]?.key ?? ""
